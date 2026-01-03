@@ -23,7 +23,14 @@ Synapse uses a **Push Model**. The server does not scan your network. Instead, y
   "status": "online",
   "ttl": 60,
   "widgets": [
-    { "type": "stat", "label": "Uptime", "value": "24h" }
+    { 
+      "type": "stat", 
+      "label": "Uptime", 
+      "value": 100,
+      "monitors": [
+        { "condition": "value < 50", "severity": "error", "message": "Uptime Low!" }
+      ]
+    }
   ]
 }
 ```
