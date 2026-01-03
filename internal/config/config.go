@@ -19,6 +19,15 @@ type Config struct {
 
 	// Security
 	AuthToken string `env:"SYNAPSE_AUTH_TOKEN" envDefault:"synapse-secret"`
+
+	// Notification (SMTP)
+	SMTPHost     string `env:"SYNAPSE_SMTP_HOST"`
+	SMTPPort     string `env:"SYNAPSE_SMTP_PORT" envDefault:"587"`
+	SMTPUser     string `env:"SYNAPSE_SMTP_USER"`
+	SMTPPass     string `env:"SYNAPSE_SMTP_PASS"`
+	SMTPFrom     string `env:"SYNAPSE_SMTP_FROM" envDefault:"synapse@localhost"`
+	SMTPTo       string `env:"SYNAPSE_SMTP_TO"`       // Comma separated list
+	EnableAlerts bool   `env:"SYNAPSE_ENABLE_ALERTS" envDefault:"false"`
 }
 
 func Load() *Config {

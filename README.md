@@ -51,6 +51,12 @@ Synapse is configured via Environment Variables.
 | `SYNAPSE_DB_PATH` | `synapse.db` | Path to the SQLite database file. |
 | `SYNAPSE_AUTH_TOKEN`| `synapse-secret`| PSK for service registration. |
 
+Use this to export the environment variables.
+
+```sh
+export $(grep -v '^#' .env | xargs)
+```
+
 ## Usage
 
 ### Registering a Service

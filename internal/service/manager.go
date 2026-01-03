@@ -8,19 +8,24 @@ import (
 
 	"github.com/wbw1537/synapse/internal/config"
 	"github.com/wbw1537/synapse/internal/db"
+	"github.com/wbw1537/synapse/internal/evaluator"
 	"github.com/wbw1537/synapse/internal/models"
+	"github.com/wbw1537/synapse/internal/notification"
 	"gorm.io/gorm/clause"
 )
 
 type Manager struct {
-	db     *db.Database
-	config *config.Config
+	db           *db.Database
+	config       *config.Config
+	alertManager *notification.AlertManager
 }
 
 func NewManager(database *db.Database, cfg *config.Config) *Manager {
+	sender := notification.NewSMTPSender(cfg)
 	return &Manager{
-		db:     database,
-		config: cfg,
+		db:           database,
+		config:       cfg,
+		alertManager: notification.NewAlertManager(sender),
 	}
 }
 
@@ -55,8 +60,27 @@ func (m *Manager) Upsert(payload []byte) error {
 		return fmt.Errorf("db error: %w", err)
 	}
 
+	// 4. Check Monitors
+	m.evaluateMonitors(&svc)
+
 	log.Printf("Service registered: %s (%s)", svc.Name, svc.ID)
 	return nil
+}
+
+func (m *Manager) evaluateMonitors(svc *models.Service) {
+	for wIdx, widget := range svc.Widgets {
+		for mIdx, monitor := range widget.Monitors {
+			triggered, err := evaluator.Evaluate(monitor.Condition, widget.Value)
+			if err != nil {
+				log.Printf("Monitor evaluation error (svc=%s, widget=%s): %v", svc.ID, widget.Label, err)
+				continue
+			}
+
+			// Unique key for state tracking
+			key := fmt.Sprintf("%s:w%d:m%d", svc.ID, wIdx, mIdx)
+			m.alertManager.CheckAndAlert(key, triggered, monitor.Severity, monitor.Message, svc.Name)
+		}
+	}
 }
 
 // StartTTLMonitor checks for expired services

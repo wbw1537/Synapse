@@ -43,11 +43,19 @@ type Action struct {
 
 // Widget represents a UI element (graph, stat, etc.)
 type Widget struct {
-	Type  string                 `json:"type"`  // stat, progress, chart
-	Label string                 `json:"label"`
-	Value any                    `json:"value"`
-	Unit  string                 `json:"unit"`
-	Meta  map[string]interface{} `json:"meta"`
+	Type     string                 `json:"type"`  // stat, progress, chart
+	Label    string                 `json:"label"`
+	Value    any                    `json:"value"`
+	Unit     string                 `json:"unit"`
+	Meta     map[string]interface{} `json:"meta"`
+	Monitors []Monitor              `json:"monitors"`
+}
+
+// Monitor represents a server-side rule for alerting
+type Monitor struct {
+	Condition string `json:"condition"` // Expression: "value > 90"
+	Severity  string `json:"severity"`  // "warning", "error"
+	Message   string `json:"message"`   // "CPU High"
 }
 
 // ServicePayload is the exact structure expected from the MQTT discovery topic.
