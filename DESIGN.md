@@ -91,9 +91,13 @@ Current homelab tooling suffers from three major disconnects:
 * **Action Buttons:** UI renders buttons based on the `actions` payload.
 * *Example:* If payload contains `action: { label: "Restart", id: "restart" }`, UI shows a "Restart" button.
 
+### 6.3 Server-Side Monitoring (Smart Alerts)
 
+* **Widget Monitors:** Widgets can define server-side evaluation rules.
+* **Expression Engine:** The Core evaluates expressions (e.g., `value > 90`) when a payload is received.
+* **Alerting:** If a condition is met, Synapse updates the service status or triggers a notification.
 
-### 6.3 Notification Gateway
+### 6.4 Notification Gateway
 
 * **Unified Routing:** Synapse exposes a single API endpoint for notifications.
 * **Deduplication:** Logic to prevent notification storms (e.g., "If > 5 alerts in 10s, send summary").
