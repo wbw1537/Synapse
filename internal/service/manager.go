@@ -99,3 +99,20 @@ func (m *Manager) checkTTL() {
 		// In the future: trigger "Service Lost" notification here
 	}
 }
+
+// List returns all services
+func (m *Manager) List() ([]models.Service, error) {
+	var services []models.Service
+	result := m.db.Conn.Find(&services)
+	return services, result.Error
+}
+
+// Get returns a single service by ID
+func (m *Manager) Get(id string) (*models.Service, error) {
+	var svc models.Service
+	result := m.db.Conn.First(&svc, "id = ?", id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &svc, nil
+}
