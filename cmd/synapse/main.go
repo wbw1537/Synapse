@@ -1,11 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/wbw1537/synapse/internal/broker"
 	"github.com/wbw1537/synapse/internal/config"
 	"github.com/wbw1537/synapse/internal/db"
+	"github.com/wbw1537/synapse/internal/service"
 )
 
 func main() {
@@ -19,19 +23,54 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer database.Close()
+
 	if err := database.InitSchema(); err != nil {
 		log.Fatalf("Failed to initialize schema: %v", err)
 	}
 
-	// 3. Start MQTT Broker
+	// 3. Initialize Service Manager
+	svcManager := service.NewManager(database, cfg)
+	// Start TTL Monitor (Run every 10 seconds)
+	svcManager.StartTTLMonitor(10 * time.Second)
+
+	// 4. Start MQTT Broker (Embedded)
 	mqttBroker := broker.New()
 	if err := mqttBroker.Start(cfg.MQTTPort, cfg.WSPort); err != nil {
 		log.Fatalf("Failed to start MQTT broker: %v", err)
 	}
 	defer mqttBroker.Stop()
+
+	// 5. Connect Internal MQTT Client (The "Core" Logic)
+	// We wait a second to ensure the broker is fully up
+	time.Sleep(1 * time.Second)
+
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker(fmt.Sprintf("tcp://localhost%s", cfg.MQTTPort))
+	opts.SetClientID("synapse_core")
+	opts.SetAutoReconnect(true)
+
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatalf("Failed to connect internal MQTT client: %v", token.Error())
+	}
+	defer client.Disconnect(250)
+
+	// 6. Subscribe to Discovery Topic
+	topic := "opshub/v1/discovery/#"
+	if token := client.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
+		// Log receipt (optional, verbose)
+		// log.Printf("Received message on %s", msg.Topic())
+		if err := svcManager.Upsert(msg.Payload()); err != nil {
+			log.Printf("Error processing discovery payload: %v", err)
+		}
+	}); token.Wait() && token.Error() != nil {
+		log.Fatalf("Failed to subscribe to topic %s: %v", topic, token.Error())
+	}
+
+	log.Printf("Listening for services on %s", topic)
 	log.Println("Synapse is running. Press Ctrl+C to stop.")
 
-	// 4. Wait for shutdown signal
+	// 7. Wait for shutdown signal
 	broker.WaitForSignal()
 	log.Println("Shutting down...")
 }

@@ -1,3 +1,9 @@
+---
+id: MVP-001
+type: story
+status: Done
+---
+
 # MVP Backlog: Core Infrastructure
 
 ## Status: Done

@@ -11,8 +11,11 @@ type Config struct {
 	DBPath string `env:"SYNAPSE_DB_PATH" envDefault:"synapse.db"`
 
 	// MQTT Broker
-	MQTTPort   string `env:"SYNAPSE_MQTT_PORT" envDefault:":1883"`
-	WSPort     string `env:"SYNAPSE_WS_PORT" envDefault:":8083"` // WebSocket for UI
+	MQTTPort string `env:"SYNAPSE_MQTT_PORT" envDefault:":1883"`
+	WSPort   string `env:"SYNAPSE_WS_PORT" envDefault:":8083"` // WebSocket for UI
+
+	// Security
+	AuthToken string `env:"SYNAPSE_AUTH_TOKEN" envDefault:"synapse-secret"`
 }
 
 func Load() *Config {
