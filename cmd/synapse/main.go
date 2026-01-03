@@ -6,6 +6,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/wbw1537/synapse"
 	"github.com/wbw1537/synapse/internal/api"
 	"github.com/wbw1537/synapse/internal/broker"
 	"github.com/wbw1537/synapse/internal/config"
@@ -35,7 +36,7 @@ func main() {
 	svcManager.StartTTLMonitor(10 * time.Second)
 
 	// 4. Start HTTP API
-	apiServer := api.NewServer(cfg, svcManager)
+	apiServer := api.NewServer(cfg, svcManager, synapse.UI)
 	go func() {
 		if err := apiServer.Start(); err != nil {
 			log.Fatalf("Failed to start HTTP API: %v", err)

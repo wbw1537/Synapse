@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,13 +19,15 @@ type Server struct {
 	cfg        *config.Config
 	svcManager *service.Manager
 	router     *chi.Mux
+	staticFS   fs.FS
 }
 
-func NewServer(cfg *config.Config, svcManager *service.Manager) *Server {
+func NewServer(cfg *config.Config, svcManager *service.Manager, staticFS fs.FS) *Server {
 	s := &Server{
 		cfg:        cfg,
 		svcManager: svcManager,
 		router:     chi.NewRouter(),
+		staticFS:   staticFS,
 	}
 
 	s.setupRoutes()
@@ -40,12 +44,31 @@ func (s *Server) setupRoutes() {
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 	}))
 
-	// Routes
+	// API Routes
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Get("/services", s.listServices)
 		r.Get("/services/{id}", s.getService)
 		r.Post("/discovery", s.registerService)
 	})
+
+	// Static Files (Frontend)
+	if s.staticFS != nil {
+		// We expect the FS to be rooted at web/dist
+		distFS, err := fs.Sub(s.staticFS, "web/dist")
+		if err != nil {
+			log.Printf("Warning: Failed to locate web/dist in embedded FS: %v", err)
+		} else {
+			fileServer := http.FileServer(http.FS(distFS))
+			s.router.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// If the path doesn't have an extension (not a file), serve index.html
+				// This handles SPA routing
+				if !strings.Contains(r.URL.Path, ".") && r.URL.Path != "/" {
+					r.URL.Path = "/"
+				}
+				fileServer.ServeHTTP(w, r)
+			}))
+		}
+	}
 }
 
 func (s *Server) Start() error {
