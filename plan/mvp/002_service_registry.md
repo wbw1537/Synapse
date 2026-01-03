@@ -17,7 +17,7 @@ The "brain" of Synapse. It manages the lifecycle of services, handling registrat
     *   Includes: ID, Name, Group, Tags, Status, Icon, URL, TTL.
     *   Complex Types: Actions (Buttons), Widgets (Graphs/Stats), Markdown Docs.
 2.  **Ingestion & Auth**:
-    *   Listen on MQTT topic `opshub/v1/discovery/+`.
+    *   Listen on MQTT topic `synapse/v1/discovery/+`.
     *   Validate `auth_token` against `SYNAPSE_AUTH_TOKEN` env var.
 3.  **CRUD**: Functions to Upsert (Create/Update) services in SQLite.
 4.  **TTL Monitor**: A background worker that periodically checks for expired heartbeats.

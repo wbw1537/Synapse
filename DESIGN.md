@@ -66,7 +66,7 @@ Current homelab tooling suffers from three major disconnects:
 
 ### 6.1 Service Discovery (The "Nervous System")
 
-* **MQTT Ingestion:** The Core must listen to `opshub/v1/discovery/#`.
+* **MQTT Ingestion:** The Core must listen to `synapse/v1/discovery/#`.
 * **Auto-Registration:** Upon receiving a valid payload, the system creates or updates the service record in the DB.
 * **Heartbeat Monitoring (TTL):**
 * If a service stops sending heartbeats for > `ttl` seconds, status automatically changes to `offline`.
@@ -101,7 +101,7 @@ Current homelab tooling suffers from three major disconnects:
 
 ### 6.4 Action Execution (Remote Ops)
 
-* **Command Flow:** User clicks button -> Core publishes to `opshub/v1/command/{id}` -> Agent receives -> Agent verifies whitelist -> Agent executes local command.
+* **Command Flow:** User clicks button -> Core publishes to `synapse/v1/command/{id}` -> Agent receives -> Agent verifies whitelist -> Agent executes local command.
 * **Security:** Core must enforce Action ID verification (no raw shell commands allowed).
 
 ### 6.5 AI Agent (The "Cortex")

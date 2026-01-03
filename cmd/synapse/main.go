@@ -6,6 +6,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/wbw1537/synapse/internal/api"
 	"github.com/wbw1537/synapse/internal/broker"
 	"github.com/wbw1537/synapse/internal/config"
 	"github.com/wbw1537/synapse/internal/db"
@@ -33,14 +34,22 @@ func main() {
 	// Start TTL Monitor (Run every 10 seconds)
 	svcManager.StartTTLMonitor(10 * time.Second)
 
-	// 4. Start MQTT Broker (Embedded)
+	// 4. Start HTTP API
+	apiServer := api.NewServer(cfg, svcManager)
+	go func() {
+		if err := apiServer.Start(); err != nil {
+			log.Fatalf("Failed to start HTTP API: %v", err)
+		}
+	}()
+
+	// 5. Start MQTT Broker (Embedded)
 	mqttBroker := broker.New()
 	if err := mqttBroker.Start(cfg.MQTTPort, cfg.WSPort); err != nil {
 		log.Fatalf("Failed to start MQTT broker: %v", err)
 	}
 	defer mqttBroker.Stop()
 
-	// 5. Connect Internal MQTT Client (The "Core" Logic)
+	// 6. Connect Internal MQTT Client (The "Core" Logic)
 	// We wait a second to ensure the broker is fully up
 	time.Sleep(1 * time.Second)
 
@@ -55,8 +64,8 @@ func main() {
 	}
 	defer client.Disconnect(250)
 
-	// 6. Subscribe to Discovery Topic
-	topic := "opshub/v1/discovery/#"
+	// 7. Subscribe to Discovery Topic
+	topic := "synapse/v1/discovery/#"
 	if token := client.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		// Log receipt (optional, verbose)
 		// log.Printf("Received message on %s", msg.Topic())
@@ -70,7 +79,7 @@ func main() {
 	log.Printf("Listening for services on %s", topic)
 	log.Println("Synapse is running. Press Ctrl+C to stop.")
 
-	// 7. Wait for shutdown signal
+	// 8. Wait for shutdown signal
 	broker.WaitForSignal()
 	log.Println("Shutting down...")
 }
