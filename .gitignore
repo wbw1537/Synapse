@@ -28,5 +28,12 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# Project Specific
+/synapse
+synapse.db
+synapse.db-wal
+synapse.db-shm
+*.log

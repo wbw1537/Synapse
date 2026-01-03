@@ -1,0 +1,24 @@
+package config
+
+import (
+	"log"
+
+	"github.com/caarlos0/env/v11"
+)
+
+type Config struct {
+	// Database
+	DBPath string `env:"SYNAPSE_DB_PATH" envDefault:"synapse.db"`
+
+	// MQTT Broker
+	MQTTPort   string `env:"SYNAPSE_MQTT_PORT" envDefault:":1883"`
+	WSPort     string `env:"SYNAPSE_WS_PORT" envDefault:":8083"` // WebSocket for UI
+}
+
+func Load() *Config {
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
+		log.Fatalf("Failed to parse config: %v", err)
+	}
+	return cfg
+}
