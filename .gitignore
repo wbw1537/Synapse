@@ -37,3 +37,4 @@ synapse.db
 synapse.db-wal
 synapse.db-shm
 *.log
+web/dist
