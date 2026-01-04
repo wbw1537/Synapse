@@ -165,5 +165,5 @@ See [docs/sidecar_guide.md](docs/sidecar_guide.md) for detailed integration guid
 
 ## License
 
-MIT
+Apache-2.0
 
