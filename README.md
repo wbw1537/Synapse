@@ -41,15 +41,19 @@ The dashboard will be available at **http://localhost:8080**.
 
 ### 2. Configuration
 
-Synapse is configured via Environment Variables.
+Synapse looks for a `.env` file in the working directory. You can copy the example to start:
 
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `SYNAPSE_HTTP_PORT` | `:8080` | Port for the Web UI and HTTP API. |
-| `SYNAPSE_MQTT_PORT` | `:1883` | TCP Port for the embedded MQTT Broker. |
-| `SYNAPSE_WS_PORT` | `:8083` | WebSocket Port for MQTT (used by UI). |
-| `SYNAPSE_DB_PATH` | `synapse.db` | Path to the SQLite database file. |
-| `SYNAPSE_AUTH_TOKEN`| `synapse-secret`| PSK for service registration. |
+```bash
+cp .env.example .env
+```
+
+| Variable             | Default          | Description                            |
+|:---------------------|:-----------------|:---------------------------------------|
+| `SYNAPSE_HTTP_PORT`  | `:8080`          | Port for the Web UI and HTTP API.      |
+| `SYNAPSE_MQTT_PORT`  | `:1883`          | TCP Port for the embedded MQTT Broker. |
+| `SYNAPSE_WS_PORT`    | `:8083`          | WebSocket Port for MQTT (used by UI).  |
+| `SYNAPSE_DB_PATH`    | `synapse.db`     | Path to the SQLite database file.      |
+| `SYNAPSE_AUTH_TOKEN` | `synapse-secret` | PSK for service registration.          |
 
 Use this to export the environment variables.
 
@@ -94,6 +98,13 @@ See [docs/sidecar_guide.md](docs/sidecar_guide.md) for detailed integration guid
 *   **DB**: SQLite (Embedded, WAL mode)
 *   **Broker**: Mochi MQTT (Embedded)
 *   **Frontend**: Vue 3 + Tailwind CSS + Pinia
+
+## Troubleshooting
+
+### SMTP / Email Alerts
+*   **Port 587**: Synapse assumes `STARTTLS` when using port 587. It connects via plain TCP first, then upgrades.
+*   **Port 465**: Implicit SSL/TLS is currently *not* supported by the default `net/smtp` implementation used here.
+*   **Auth Failed**: If you see `SASL PLAIN authentication failed`, verify your password is correct in `.env` (ensure no trailing spaces) and that your SMTP server accepts Plain Auth from your IP.
 
 ## License
 
