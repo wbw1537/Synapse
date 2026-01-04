@@ -2,10 +2,25 @@
 import { computed } from 'vue'
 import { Activity, AlertTriangle, XCircle, Info, ExternalLink } from 'lucide-vue-next'
 import type { Service } from '../stores/services'
+import StatWidget from './widgets/StatWidget.vue'
+import StatusWidget from './widgets/StatusWidget.vue'
+import GaugeWidget from './widgets/GaugeWidget.vue'
+import LogStreamWidget from './widgets/LogStreamWidget.vue'
+import ActionGroupWidget from './widgets/ActionGroupWidget.vue'
+import LinkWidget from './widgets/LinkWidget.vue'
 
 const props = defineProps<{
   service: Service
 }>()
+
+const widgetMap: Record<string, any> = {
+  stat: StatWidget,
+  status_indicator: StatusWidget,
+  gauge: GaugeWidget,
+  log_stream: LogStreamWidget,
+  action_group: ActionGroupWidget,
+  link: LinkWidget
+}
 
 const statusColor = computed(() => {
   switch (props.service.status) {
@@ -50,10 +65,12 @@ const statusIcon = computed(() => {
 
     <!-- Widgets Area -->
     <div v-if="service.widgets && service.widgets.length > 0" class="flex flex-col gap-2 pt-2 border-t border-zinc-800/50">
-      <div v-for="(widget, idx) in service.widgets" :key="idx" class="flex items-center justify-between text-xs py-1">
-        <span class="text-zinc-500">{{ widget.label }}</span>
-        <span class="font-mono text-zinc-300">{{ widget.value }}{{ widget.unit || '' }}</span>
-      </div>
+      <template v-for="(widget, idx) in service.widgets" :key="idx">
+        <component 
+          :is="widgetMap[widget.type] || StatWidget" 
+          :widget="widget" 
+        />
+      </template>
     </div>
 
     <div class="mt-auto pt-4 flex items-center gap-2">

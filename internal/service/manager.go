@@ -49,6 +49,11 @@ func (m *Manager) Upsert(payload []byte) error {
 	svc := p.Service
 	svc.LastSeen = time.Now()
 
+	// 2.5 Merge with existing state (for log_stream, etc.)
+	if existing, err := m.Get(svc.ID); err == nil && existing != nil {
+		m.mergeWidgets(existing, &svc)
+	}
+
 	// 3. Upsert into DB
 	// GORM Clause: OnConflict update all columns
 	err := m.db.Conn.Clauses(clause.OnConflict{
@@ -65,6 +70,59 @@ func (m *Manager) Upsert(payload []byte) error {
 
 	log.Printf("Service registered: %s (%s)", svc.Name, svc.ID)
 	return nil
+}
+
+// mergeWidgets preserves state from existing widgets into the new update
+func (m *Manager) mergeWidgets(existing, incoming *models.Service) {
+	// Create a map of existing widgets for fast lookup
+	existingWidgets := make(map[string]*models.Widget)
+	for i := range existing.Widgets {
+		existingWidgets[existing.Widgets[i].ID] = &existing.Widgets[i]
+	}
+
+	for i := range incoming.Widgets {
+		newW := &incoming.Widgets[i]
+		
+		// 1. Handle Log Stream
+		if newW.Type == "log_stream" {
+			if oldW, ok := existingWidgets[newW.ID]; ok {
+				// Initialize or cast existing logs
+				var logs []interface{}
+				
+				// Handle different potential types from JSON unmarshalling
+				switch v := oldW.Value.(type) {
+				case []interface{}:
+					logs = v
+				case []string:
+					for _, s := range v {
+						logs = append(logs, s)
+					}
+				}
+
+				// Append new value if it's a string
+				if newVal, ok := newW.Value.(string); ok {
+					logs = append(logs, newVal)
+				}
+
+				// Enforce MaxItems
+				maxItems := 10 // Default
+				if newW.MaxItems > 0 {
+					maxItems = newW.MaxItems
+				}
+
+				if len(logs) > maxItems {
+					logs = logs[len(logs)-maxItems:]
+				}
+
+				newW.Value = logs
+			} else {
+				// First time seeing this log stream, wrap the single string in a list
+				if val, ok := newW.Value.(string); ok {
+					newW.Value = []string{val}
+				}
+			}
+		}
+	}
 }
 
 func (m *Manager) evaluateMonitors(svc *models.Service) {
