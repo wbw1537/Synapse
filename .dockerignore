@@ -11,7 +11,8 @@ vendor/
 
 # Node
 web/node_modules/
-web/dist/
+web/dist/*
+!web/dist/.keep
 web/.env.local
 web/.env.*.local
 web/npm-debug.log*
