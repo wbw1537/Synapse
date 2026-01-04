@@ -1,0 +1,25 @@
+services:
+  synapse:
+    build: .
+    container_name: synapse
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # HTTP UI & API
+      - "1883:1883" # MQTT TCP
+      - "8083:8083" # MQTT WebSocket
+    volumes:
+      - synapse-data:/data
+    environment:
+      - SYNAPSE_DB_PATH=/data/synapse.db
+      - SYNAPSE_AUTH_TOKEN=synapse-secret # Change this!
+      # Optional SMTP settings
+      # - SYNAPSE_ENABLE_ALERTS=true
+      # - SYNAPSE_SMTP_HOST=smtp.example.com
+      # - SYNAPSE_SMTP_PORT=587
+      # - SYNAPSE_SMTP_USER=notify@example.com
+      # - SYNAPSE_SMTP_PASS=your-password
+      # - SYNAPSE_SMTP_FROM=synapse@example.com
+      # - SYNAPSE_SMTP_TO=admin@example.com
+
+volumes:
+  synapse-data:
