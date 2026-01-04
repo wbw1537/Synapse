@@ -43,12 +43,47 @@ type Action struct {
 
 // Widget represents a UI element (graph, stat, etc.)
 type Widget struct {
-	Type     string                 `json:"type"`  // stat, progress, chart
-	Label    string                 `json:"label"`
-	Value    any                    `json:"value"`
-	Unit     string                 `json:"unit"`
-	Meta     map[string]interface{} `json:"meta"`
+	ID      string `json:"id"`
+	Type    string `json:"type"` // stat, status_indicator, gauge, log_stream, action_group, link
+	Label   string `json:"label"`
+	Value   any    `json:"value"`
+	Unit    string `json:"unit"`
+	Visible *bool  `json:"visible,omitempty"`
+
+	// Specific fields for various widgets
+	Copyable   bool                   `json:"copyable,omitempty"`
+	Mapping    map[string]StatusState `json:"mapping,omitempty"`
+	Min        float64                `json:"min,omitempty"`
+	Max        float64                `json:"max,omitempty"`
+	Thresholds map[string]string      `json:"thresholds,omitempty"`
+	MaxItems   int                    `json:"max_items,omitempty"`
+	Items      []ActionGroupItem      `json:"items,omitempty"`
+	ActionID   string                 `json:"action_id,omitempty"`
+	URI        string                 `json:"uri,omitempty"`
+	Text       string                 `json:"text,omitempty"`
+	Icon       string                 `json:"icon,omitempty"`
+	Animate    bool                   `json:"animate,omitempty"`
+	Style      string                 `json:"style,omitempty"`
+	Confirm    bool                   `json:"confirm,omitempty"`
+
+	Meta     map[string]interface{} `json:"meta,omitempty"`
 	Monitors []Monitor              `json:"monitors"`
+}
+
+// StatusState defines the visual style for a status_indicator state
+type StatusState struct {
+	Text    string `json:"text"`
+	Color   string `json:"color"`
+	Icon    string `json:"icon"`
+	Animate bool   `json:"animate,omitempty"`
+}
+
+// ActionGroupItem defines a button in an action_group
+type ActionGroupItem struct {
+	ActionID string `json:"action_id"`
+	Label    string `json:"label"`
+	Style    string `json:"style"`
+	Confirm  bool   `json:"confirm"`
 }
 
 // Monitor represents a server-side rule for alerting

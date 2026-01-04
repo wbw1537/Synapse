@@ -20,6 +20,13 @@ def get_payload(simulated_percent=None):
     else:
         val = mem.percent
     
+    # Derive status for status_indicator
+    status_key = "normal"
+    if val > 90:
+        status_key = "critical"
+    elif val > 70:
+        status_key = "high"
+
     return {
         "api_version": "v1",
         "auth_token": TOKEN,
@@ -29,10 +36,14 @@ def get_payload(simulated_percent=None):
         "status": "online",
         "ttl": TTL,
         "widgets": [
+            # 1. Stat (Existing logic preserved)
             {
+                "id": "mem_stat",
                 "type": "stat",
-                "label": "Memory Usage (%)",
+                "label": "Memory Usage",
                 "value": val,
+                "unit": "%",
+                "copyable": True,
                 "monitors": [
                     {
                         "condition": "value > 90",
@@ -40,6 +51,68 @@ def get_payload(simulated_percent=None):
                         "message": "Memory Critical: >90% usage detected!"
                     }
                 ]
+            },
+            # 2. Gauge
+            {
+                "id": "mem_gauge",
+                "type": "gauge",
+                "label": "Load Visual",
+                "value": val,
+                "min": 0,
+                "max": 100,
+                "unit": "%",
+                "thresholds": {
+                    "70": "warning",
+                    "90": "danger"
+                }
+            },
+            # 3. Status Indicator
+            {
+                "id": "health_status",
+                "type": "status_indicator",
+                "label": "Health State",
+                "value": status_key,
+                "mapping": {
+                    "normal": {"text": "Healthy", "color": "success", "icon": "check"},
+                    "high": {"text": "High Load", "color": "warning", "icon": "activity"},
+                    "critical": {"text": "Critical", "color": "danger", "icon": "alert", "animate": True}
+                }
+            },
+            # 4. Log Stream
+            {
+                "id": "mem_logs",
+                "type": "log_stream",
+                "label": "Activity Log",
+                "value": f"[{time.strftime('%H:%M:%S')}] Sampled memory usage at {val}%",
+                "max_items": 5
+            },
+            # 5. Action Group
+            {
+                "id": "ops_actions",
+                "type": "action_group",
+                "label": "Operations",
+                "items": [
+                    {
+                        "action_id": "drop_cache",
+                        "label": "Drop Cache",
+                        "style": "primary",
+                        "confirm": False
+                    },
+                    {
+                        "action_id": "restart_process",
+                        "label": "Restart",
+                        "style": "danger",
+                        "confirm": True
+                    }
+                ]
+            },
+            # 6. Link
+            {
+                "id": "docs_link",
+                "type": "link",
+                "label": "Documentation",
+                "text": "Wiki",
+                "uri": "https://en.wikipedia.org/wiki/Random-access_memory"
             }
         ]
     }

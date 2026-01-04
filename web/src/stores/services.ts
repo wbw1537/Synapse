@@ -23,6 +23,7 @@ export const useServiceStore = defineStore('services', () => {
   const services = ref<Record<string, Service>>({})
   const loading = ref(false)
   const connected = ref(false)
+  const selectedServiceId = ref<string | null>(null)
 
   const fetchServices = async () => {
     loading.value = true
@@ -37,6 +38,10 @@ export const useServiceStore = defineStore('services', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  const selectService = (id: string | null) => {
+    selectedServiceId.value = id
   }
 
   const initMQTT = () => {
@@ -59,10 +64,44 @@ export const useServiceStore = defineStore('services', () => {
 
     client.on('message', (_topic, payload) => {
       try {
-        const data = JSON.parse(payload.toString())
-        // The discovery payload has Service embedded
-        if (data.id) {
-          services.value[data.id] = data
+        const newData = JSON.parse(payload.toString())
+        
+        if (newData.id) {
+          const existing = services.value[newData.id]
+          
+          if (existing) {
+            // Merge Widgets
+            if (newData.widgets && existing.widgets) {
+              newData.widgets.forEach((newWidget: any) => {
+                const oldWidget = existing.widgets.find((w: any) => w.id === newWidget.id)
+                
+                if (oldWidget && newWidget.type === 'log_stream') {
+                  // Merge logs
+                  let logs: any[] = []
+                  
+                  if (Array.isArray(oldWidget.value)) {
+                    logs = [...oldWidget.value]
+                  } else if (typeof oldWidget.value === 'string') {
+                    logs = [oldWidget.value]
+                  }
+
+                  if (typeof newWidget.value === 'string') {
+                    logs.push(newWidget.value)
+                  }
+
+                  // Max Items
+                  const maxItems = newWidget.max_items || 10
+                  if (logs.length > maxItems) {
+                    logs = logs.slice(logs.length - maxItems)
+                  }
+                  
+                  newWidget.value = logs
+                }
+              })
+            }
+          }
+          
+          services.value[newData.id] = newData
         }
       } catch (err) {
         console.error('Failed to parse MQTT message:', err)
@@ -78,7 +117,9 @@ export const useServiceStore = defineStore('services', () => {
     services,
     loading,
     connected,
+    selectedServiceId,
     fetchServices,
+    selectService,
     initMQTT
   }
 })
