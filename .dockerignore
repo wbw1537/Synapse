@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Go
+bin/
+synapse
+*.exe
+*.test
+vendor/
+
+# Node
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+web/.env.local
+web/.env.*.local
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Synapse Data
+*.db
+*.db-shm
+*.db-wal
+
+# Example Agents
+examples/

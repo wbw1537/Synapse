@@ -37,4 +37,5 @@ synapse.db
 synapse.db-wal
 synapse.db-shm
 *.log
-web/dist
+web/dist/*
+!web/dist/.gitkeep
