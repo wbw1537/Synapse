@@ -12,7 +12,7 @@ vendor/
 # Node
 web/node_modules/
 web/dist/*
-!web/dist/.keep
+!web/dist/.gitkeep
 web/.env.local
 web/.env.*.local
 web/npm-debug.log*

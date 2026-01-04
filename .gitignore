@@ -38,4 +38,4 @@ synapse.db-wal
 synapse.db-shm
 *.log
 web/dist/*
-!web/dist/.keep
+!web/dist/.gitkeep
