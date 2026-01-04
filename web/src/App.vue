@@ -2,6 +2,7 @@
 import { onMounted, computed } from 'vue'
 import { useServiceStore } from './stores/services'
 import ServiceCard from './components/ServiceCard.vue'
+import ServiceDrawer from './components/ServiceDrawer.vue'
 import { Wifi, WifiOff } from 'lucide-vue-next'
 
 const store = useServiceStore()
@@ -58,6 +59,8 @@ const sortedServices = computed(() => {
       <span>Synapse v1.0</span>
       <span>Experimental EDA Dashboard</span>
     </footer>
+
+    <ServiceDrawer />
   </div>
 </template>
 

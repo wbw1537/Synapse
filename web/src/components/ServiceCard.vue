@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Activity, AlertTriangle, XCircle, Info, ExternalLink } from 'lucide-vue-next'
+import { useServiceStore } from '../stores/services'
 import type { Service } from '../stores/services'
 import StatWidget from './widgets/StatWidget.vue'
 import StatusWidget from './widgets/StatusWidget.vue'
@@ -12,6 +13,10 @@ import LinkWidget from './widgets/LinkWidget.vue'
 const props = defineProps<{
   service: Service
 }>()
+
+const select = () => {
+  useServiceStore().selectService(props.service.id)
+}
 
 const widgetMap: Record<string, any> = {
   stat: StatWidget,
@@ -42,7 +47,10 @@ const statusIcon = computed(() => {
 </script>
 
 <template>
-  <div class="group p-5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all shadow-sm flex flex-col gap-4">
+  <div 
+    @click="select"
+    class="group p-5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all shadow-sm flex flex-col gap-4 cursor-pointer"
+  >
     <div class="flex items-start justify-between">
       <div class="flex items-center gap-3">
         <div :class="['p-2 rounded-lg border', statusColor]">
@@ -54,7 +62,13 @@ const statusIcon = computed(() => {
         </div>
       </div>
       
-      <a v-if="service.url" :href="service.url" target="_blank" class="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors">
+      <a 
+        v-if="service.url" 
+        :href="service.url" 
+        target="_blank" 
+        @click.stop
+        class="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors"
+      >
         <ExternalLink class="w-4 h-4" />
       </a>
     </div>
