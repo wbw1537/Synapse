@@ -30,8 +30,9 @@ watch(logs, () => {
     <span class="text-xs text-zinc-500">{{ widget.label }}</span>
     <div 
       ref="logRef"
-      class="bg-zinc-950 rounded border border-zinc-800 p-2 text-[10px] font-mono text-zinc-400 overflow-y-auto whitespace-pre-wrap transition-all"
+      class="bg-zinc-950 rounded border border-zinc-800 p-2 text-[10px] font-mono text-zinc-400 overflow-y-auto whitespace-pre-wrap transition-all cursor-text"
       :class="autoHeight ? 'min-h-24' : 'h-24'"
+      @click.stop
     >
       <div v-for="(line, idx) in logs" :key="idx" class="border-b border-zinc-800/50 last:border-0 pb-0.5 mb-0.5 last:pb-0 last:mb-0">
         {{ line }}

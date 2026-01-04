@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -64,6 +65,15 @@ func main() {
 		log.Fatalf("Failed to connect internal MQTT client: %v", token.Error())
 	}
 	defer client.Disconnect(250)
+
+	// 6.5 Inject Publisher into Manager
+	svcManager.SetPublisher(func(topic string, payload interface{}) error {
+		// Serialize payload to JSON string/bytes
+		importJSON, _ := json.Marshal(payload) // Assuming safe for now
+		token := client.Publish(topic, 0, false, importJSON)
+		token.Wait()
+		return token.Error()
+	})
 
 	// 7. Subscribe to Discovery Topic
 	topic := "synapse/v1/discovery/#"

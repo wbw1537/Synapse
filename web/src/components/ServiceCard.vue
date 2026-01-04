@@ -82,7 +82,8 @@ const statusIcon = computed(() => {
       <template v-for="(widget, idx) in service.widgets" :key="idx">
         <component 
           :is="widgetMap[widget.type] || StatWidget" 
-          :widget="widget" 
+          :widget="widget"
+          :service-id="service.id"
         />
       </template>
     </div>

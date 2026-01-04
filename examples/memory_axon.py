@@ -134,8 +134,30 @@ If you receive a **Critical** alert (>90% usage):
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print("Connected to MQTT Broker!")
+        # Subscribe to command topic for this service
+        command_topic = f"synapse/v1/command/{SERVICE_ID}"
+        client.subscribe(command_topic)
+        print(f"Subscribed to {command_topic}")
     else:
         print(f"Failed to connect, return code {rc}")
+
+def on_message(client, userdata, msg):
+    try:
+        print(f"Received command on {msg.topic}")
+        payload = json.loads(msg.payload.decode())
+        action_id = payload.get("action_id")
+        
+        if action_id == "drop_cache":
+            print(">>> ACTION: Dropping Cache... (Simulated)")
+            # Simulated effect: reduce memory usage
+            # In a real scenario, this would run `sync; echo 3 > /proc/sys/vm/drop_caches`
+        elif action_id == "restart_process":
+            print(">>> ACTION: Restarting Process... (Simulated)")
+        else:
+            print(f">>> WARNING: Unknown action '{action_id}' requested.")
+            
+    except Exception as e:
+        print(f"Error handling message: {e}")
 
 # Initialize MQTT Client (using CallbackAPIVersion.VERSION2 for newer paho-mqtt)
 try:
@@ -145,6 +167,7 @@ except AttributeError:
     client = mqtt.Client()
 
 client.on_connect = on_connect
+client.on_message = on_message
 
 print(f"Connecting to {BROKER}:{PORT}...")
 try:

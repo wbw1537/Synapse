@@ -1,17 +1,27 @@
 <script setup lang="ts">
+import { useServiceStore } from '../../stores/services'
 
 const props = defineProps<{
-  widget: any
+  widget: any,
+  serviceId?: string
 }>()
+
+const store = useServiceStore()
 
 const handleAction = async (item: any) => {
   if (item.confirm) {
     if (!confirm(`Are you sure you want to ${item.label}?`)) return
   }
   
-  // TODO: Implement backend API call to trigger action
-  console.log('Triggering action:', item.action_id)
-  alert(`Action '${item.action_id}' triggered! (Simulation)`)
+  if (!props.serviceId && !store.selectedServiceId) {
+    console.error("No service ID available for action")
+    return
+  }
+
+  const sid = props.serviceId || store.selectedServiceId
+  if (sid) {
+    await store.executeAction(sid, item.action_id)
+  }
 }
 
 const getButtonStyle = (style: string) => {
@@ -33,7 +43,7 @@ const getButtonStyle = (style: string) => {
         :key="idx"
         class="px-3 py-1.5 rounded text-xs font-medium border transition-colors flex items-center gap-1.5"
         :class="getButtonStyle(item.style)"
-        @click="handleAction(item)"
+        @click.stop="handleAction(item)"
       >
         <!-- Simple logic for icons based on common keywords if desired, or just text -->
         {{ item.label }}
