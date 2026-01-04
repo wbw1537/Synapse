@@ -35,6 +35,20 @@ def get_payload(simulated_percent=None):
         "group": "System",
         "status": "online",
         "ttl": TTL,
+        "markdown_docs": """# Memory Monitor Runbook
+
+This Axon monitors the system memory usage and reports it to Synapse.
+
+## Troubleshooting
+If you receive a **Critical** alert (>90% usage):
+1. Check for memory-hungry processes: `top -o %MEM`
+2. Identify if it's a leak or expected load.
+3. Use the **Drop Cache** action below if the system is sluggish.
+
+## Data Sources
+- **psutil**: Used for cross-platform memory statistics.
+- **Log Stream**: Captures every sample event for audit.
+""",
         "widgets": [
             # 1. Stat (Existing logic preserved)
             {
