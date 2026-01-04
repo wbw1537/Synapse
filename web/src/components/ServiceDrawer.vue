@@ -67,8 +67,16 @@ watch(() => store.selectedServiceId, () => {
   activeTab.value = 'runbook'
 })
 
-const handleAction = (actionId: string) => {
-  alert(`Triggering action: ${actionId} (Mock)`)
+const handleAction = async (actionId: string) => {
+  if (!service.value) return
+  
+  // Find action to check for confirmation
+  const action = service.value.actions.find(a => a.id === actionId)
+  if (action?.require_confirmation) {
+    if (!confirm(`Are you sure you want to ${action.label}?`)) return
+  }
+
+  await store.executeAction(service.value.id, actionId)
 }
 </script>
 

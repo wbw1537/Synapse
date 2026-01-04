@@ -12,6 +12,7 @@ defineProps<{
     <a 
       :href="widget.uri" 
       target="_blank"
+      @click.stop
       class="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 hover:underline transition-colors"
     >
       <span class="font-medium">{{ widget.text || 'Open' }}</span>

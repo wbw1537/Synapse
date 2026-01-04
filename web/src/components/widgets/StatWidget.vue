@@ -26,7 +26,7 @@ const copyToClipboard = async () => {
     <div 
       class="flex items-center gap-2" 
       :class="{'cursor-pointer hover:text-zinc-100': widget.copyable}"
-      @click="copyToClipboard"
+      @click.stop="copyToClipboard"
     >
       <span class="font-mono text-zinc-300">
         {{ widget.value }}<span v-if="widget.unit" class="text-zinc-500 ml-0.5">{{ widget.unit }}</span>

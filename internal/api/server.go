@@ -48,6 +48,7 @@ func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Get("/services", s.listServices)
 		r.Get("/services/{id}", s.getService)
+		r.Post("/services/{id}/actions/{action_id}", s.executeAction)
 		r.Post("/discovery", s.registerService)
 	})
 
@@ -95,6 +96,20 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(svc)
+}
+
+func (s *Server) executeAction(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	actionID := chi.URLParam(r, "action_id")
+
+	if err := s.svcManager.ExecuteAction(id, actionID); err != nil {
+		log.Printf("ExecuteAction failed: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Action triggered"))
 }
 
 func (s *Server) registerService(w http.ResponseWriter, r *http.Request) {

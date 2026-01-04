@@ -18,6 +18,7 @@ type Manager struct {
 	db           *db.Database
 	config       *config.Config
 	alertManager *notification.AlertManager
+	publishFunc  func(topic string, payload interface{}) error
 }
 
 func NewManager(database *db.Database, cfg *config.Config) *Manager {
@@ -27,6 +28,64 @@ func NewManager(database *db.Database, cfg *config.Config) *Manager {
 		config:       cfg,
 		alertManager: notification.NewAlertManager(sender),
 	}
+}
+
+// SetPublisher sets the MQTT publish function
+func (m *Manager) SetPublisher(fn func(topic string, payload interface{}) error) {
+	m.publishFunc = fn
+}
+
+// ExecuteAction triggers a command to the remote axon
+func (m *Manager) ExecuteAction(serviceID, actionID string) error {
+	svc, err := m.Get(serviceID)
+	if err != nil {
+		return err
+	}
+	
+	// 1. Validate if action exists in the service definition
+	// We check top-level actions AND actions embedded in widgets (action_group)
+	found := false
+	
+	// Check top-level actions
+	for _, a := range svc.Actions {
+		if a.ID == actionID {
+			found = true
+			break
+		}
+	}
+	
+	// Check widgets
+	if !found {
+		for _, w := range svc.Widgets {
+			if w.Type == "action_group" {
+				for _, item := range w.Items {
+					if item.ActionID == actionID {
+						found = true
+						break
+					}
+				}
+			}
+			if found { break }
+		}
+	}
+	
+	if !found {
+		return fmt.Errorf("action '%s' not found for service '%s'", actionID, serviceID)
+	}
+	
+	// 2. Publish Command
+	if m.publishFunc == nil {
+		return fmt.Errorf("mqtt publisher not configured")
+	}
+	
+	topic := fmt.Sprintf("synapse/v1/command/%s", serviceID)
+	payload := map[string]string{
+		"action_id": actionID,
+		"issued_by": "synapse-ui", // user auth not implemented yet
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+	
+	return m.publishFunc(topic, payload)
 }
 
 // Upsert handles the registration/update logic

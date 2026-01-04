@@ -44,6 +44,22 @@ export const useServiceStore = defineStore('services', () => {
     selectedServiceId.value = id
   }
 
+  const executeAction = async (serviceId: string, actionId: string) => {
+    try {
+      const response = await fetch(`/api/v1/services/${serviceId}/actions/${actionId}`, {
+        method: 'POST'
+      })
+      if (!response.ok) {
+        throw new Error(await response.text())
+      }
+      return true
+    } catch (err) {
+      console.error('Failed to execute action:', err)
+      alert(`Failed to execute action: ${err}`)
+      return false
+    }
+  }
+
   const initMQTT = () => {
     // Determine WS URL based on current origin
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -120,6 +136,7 @@ export const useServiceStore = defineStore('services', () => {
     selectedServiceId,
     fetchServices,
     selectService,
+    executeAction,
     initMQTT
   }
 })
