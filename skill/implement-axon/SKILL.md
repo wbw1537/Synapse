@@ -126,3 +126,34 @@ When building your payload, you can use these widget types in the `widgets` list
 *   **`link`**: Static hyperlinks to external dashboards.
 
 See `docs/widget_reference.md` for full JSON schemas.
+
+---
+
+## 5. Implementing Notifications (Monitors)
+
+You can add server-side alerting to any widget by adding a `monitors` array. Synapse evaluates these conditions every time it receives a heartbeat.
+
+### Condition Syntax
+The variable `value` refers to the widget's current data.
+
+*   **Numeric:** `value > 95` or `value < 10`
+*   **Strings:** `value == 'error'` or `value != 'ok'`
+*   **Logs:** `len(value) > 0 && value[len(value)-1] contains 'CRITICAL'`
+
+### Example Monitor
+```json
+{
+  "type": "gauge",
+  "id": "temp",
+  "value": 42,
+  "monitors": [
+    {
+      "condition": "value > 40",
+      "severity": "warning",
+      "message": "Temperature is rising"
+    }
+  ]
+}
+```
+
+Notifications (e.g., Email) are sent automatically on **state change** (when the condition first becomes true, and stops when it becomes false).

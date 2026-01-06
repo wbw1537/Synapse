@@ -195,6 +195,8 @@ A container for buttons that trigger remote actions defined in the Axon's `actio
 
 ---
 
+---
+
 ### 2.6 `link`
 
 A static navigation shortcut, useful for linking to external Web UIs.
@@ -218,3 +220,50 @@ A static navigation shortcut, useful for linking to external Web UIs.
 }
 
 ```
+
+---
+
+## 3. Server-Side Monitoring (Monitors)
+
+Monitors allow Synapse to evaluate incoming data and trigger notifications (e.g., email via SMTP) when specific conditions are met. Notifications are only sent when the state changes (e.g., from `ok` to `error`).
+
+### 3.1 Monitor Object Structure
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `condition` | `string` | An expression evaluated against the widget's `value`. |
+| `severity` | `string` | `warning` or `critical` (used in notification subject). |
+| `message` | `string` | The alert message to include in the notification. |
+
+### 3.2 Writing Conditions by Widget Type
+
+The `condition` string uses a Go-based expression engine where the current widget data is available as the variable `value`.
+
+#### Numeric Widgets (`stat`, `gauge`)
+`value` is a number. Use standard comparison operators (`>`, `<`, `==`, `!=`).
+```json
+"monitors": [
+  { "condition": "value > 90", "severity": "critical", "message": "High usage!" }
+]
+```
+
+#### State-based Widgets (`status_indicator`)
+`value` is a string or boolean. Wrap strings in single quotes.
+```json
+"monitors": [
+  { "condition": "value == 'offline'", "severity": "critical", "message": "Service is down!" }
+]
+```
+
+#### List-based Widgets (`log_stream`)
+`value` is an **array of strings** (the log history). 
+```json
+"monitors": [
+  { 
+    "condition": "len(value) > 0 && value[len(value)-1] contains 'ERROR'", 
+    "severity": "critical", 
+    "message": "Error detected in logs!" 
+  }
+]
+```
+*Note: For `log_stream`, it's often more reliable to use a separate hidden `stat` widget for specific error flags.*
