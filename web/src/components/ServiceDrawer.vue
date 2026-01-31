@@ -47,19 +47,34 @@ const widgetMap: Record<string, any> = {
   link: LinkWidget
 }
 
+const allComponents = computed(() => {
+  if (!service.value?.components) return []
+  return Object.values(service.value.components)
+})
+
 // Separate widgets by type for tabs
 const logWidgets = computed(() => {
-  return service.value?.widgets?.filter(w => w.type === 'log_stream') || []
+  return allComponents.value.filter(w => w.type === 'log_stream')
 })
 
 const healthWidgets = computed(() => {
-  return service.value?.widgets?.filter(w => w.type !== 'log_stream') || []
+  return allComponents.value.filter(w => w.type !== 'log_stream' && w.type !== 'action_group')
 })
 
 // Handle "Critical" actions for the footer
-// For now, we define critical as style === 'danger' or confirm === true
+// Iterate through all action_group components and collect their items
 const criticalActions = computed(() => {
-  return service.value?.actions?.filter(a => a.style === 'danger' || a.require_confirmation) || []
+  const actions: any[] = []
+  allComponents.value.forEach(comp => {
+    if (comp.type === 'action_group' && comp.items) {
+      comp.items.forEach((item: any) => {
+        if (item.style === 'danger' || item.confirm) {
+          actions.push(item)
+        }
+      })
+    }
+  })
+  return actions
 })
 
 // Reset tab when service changes
@@ -70,10 +85,24 @@ watch(() => store.selectedServiceId, () => {
 const handleAction = async (actionId: string) => {
   if (!service.value) return
   
-  // Find action to check for confirmation
-  const action = service.value.actions.find(a => a.id === actionId)
-  if (action?.require_confirmation) {
-    if (!confirm(`Are you sure you want to ${action.label}?`)) return
+  // Find action definition to check for confirmation
+  // We need to look inside all action groups
+  let targetAction: any = null
+  
+  if (service.value.components) {
+    for (const comp of Object.values(service.value.components)) {
+      if (comp.type === 'action_group' && comp.items) {
+        const found = comp.items.find((item: any) => item.action_id === actionId)
+        if (found) {
+          targetAction = found
+          break
+        }
+      }
+    }
+  }
+
+  if (targetAction?.confirm) {
+    if (!confirm(`Are you sure you want to ${targetAction.label}?`)) return
   }
 
   await store.executeAction(service.value.id, actionId)
@@ -108,7 +137,7 @@ const handleAction = async (actionId: string) => {
                 <h2 class="text-2xl font-black text-white uppercase tracking-tight italic">{{ service.name }}</h2>
                 <div class="flex items-center gap-3 mt-1 text-xs font-bold uppercase tracking-widest text-zinc-500">
                   <span class="flex items-center gap-1"><MapPin class="w-3 h-3" /> {{ service.group }}</span>
-                  <span class="flex items-center gap-1"><Clock class="w-3 h-3" /> Seen 2m ago</span>
+                  <span class="flex items-center gap-1"><Clock class="w-3 h-3" /> Seen recently</span>
                 </div>
               </div>
             </div>
@@ -183,8 +212,8 @@ const handleAction = async (actionId: string) => {
             <div class="flex gap-3">
               <button 
                 v-for="action in criticalActions" 
-                :key="action.id"
-                @click="handleAction(action.id)"
+                :key="action.action_id"
+                @click="handleAction(action.action_id)"
                 :class="[
                   'flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all border shadow-lg',
                   action.style === 'danger' 

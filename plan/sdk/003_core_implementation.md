@@ -1,12 +1,12 @@
 ---
 id: SDK-003
 type: task
-status: Pending
+status: Done
 ---
 
 # SDK Task: Core Refactor (New Protocol)
 
-## Status: Pending
+## Status: Done
 ## Effort Estimate: High
 
 ## Description
@@ -33,15 +33,27 @@ Refactor Synapse Core and Frontend to exclusively support the new **Axon Protoco
 ### 3. CI/CD (`.github/workflows/ci.yml`)
 -   **Optimization**: Update the workflow triggers.
 -   **Rule**: Only run CI checks when a **new version tag** is pushed (e.g., `v*`).
-    -   Rationale: Reduce runner usage during rapid dev, only validate releases/PRs that are release candidates? (Clarify: User said "only ci when new version tag is marked for the PR" - likely means on `push: tags: [ 'v*' ]` or similar).
 
 ## Tasks
-- [ ] **CI**: Update `.github/workflows/ci.yml` trigger rules.
-- [ ] **Models**: Refactor `internal/models/service.go` (Breaking).
-- [ ] **Manager**: Update `internal/service/manager.go`.
-- [ ] **Frontend Types**: Update TypeScript interfaces.
-- [ ] **Frontend UI**: Rewrite `ServiceCard.vue` for Layout/Component rendering.
-- [ ] **Cleanup**: Remove any v1 legacy code.
+- [x] **CI**: Update `.github/workflows/ci.yml` trigger rules.
+- [x] **Models**: Refactor `internal/models/service.go` (Breaking).
+- [x] **Manager**: Update `internal/service/manager.go`.
+- [x] **Frontend Types**: Update TypeScript interfaces.
+- [x] **Frontend UI**: Rewrite `ServiceCard.vue` for Layout/Component rendering.
+- [x] **Cleanup**: Remove any v1 legacy code.
 
 ## Resources
 -   `docs/axon_toml_spec.md`: The definitive protocol source.
+
+### Completion Report
+- **Status**: Done
+- **Completion Date**: 2026-01-31
+- **Key Artifacts**:
+    - `internal/models/service.go`: Updated `Service` struct (removed Widgets, added Layout/Components).
+    - `internal/service/manager.go`: Updated logic to handle Component maps and Layout merging.
+    - `web/src/stores/services.ts`: Frontend type defs updated.
+    - `web/src/components/ServiceCard.vue`: UI rendering updated to use `layout` and `components`.
+    - `web/src/components/ServiceDrawer.vue`: UI panel updated to look up widgets in `components` map.
+- **Verification**:
+    - CI config updated to strict version tagging.
+    - Code compiles (verified via `go build` and `npm run build`).

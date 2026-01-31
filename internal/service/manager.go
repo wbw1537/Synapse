@@ -43,30 +43,24 @@ func (m *Manager) ExecuteAction(serviceID, actionID string) error {
 	}
 	
 	// 1. Validate if action exists in the service definition
-	// We check top-level actions AND actions embedded in widgets (action_group)
+	// We search through all components for action groups containing this ID
 	found := false
 	
-	// Check top-level actions
-	for _, a := range svc.Actions {
-		if a.ID == actionID {
-			found = true
-			break
-		}
-	}
-	
-	// Check widgets
-	if !found {
-		for _, w := range svc.Widgets {
-			if w.Type == "action_group" {
-				for _, item := range w.Items {
-					if item.ActionID == actionID {
-						found = true
-						break
-					}
+	for _, comp := range svc.Components {
+		if comp.Type == "action_group" {
+			for _, item := range comp.Items {
+				if item.ActionID == actionID {
+					found = true
+					break
 				}
 			}
-			if found { break }
 		}
+		// Also check if the component itself IS the action (if defined that way in future)
+		if comp.ActionID == actionID {
+			found = true
+		}
+		
+		if found { break }
 	}
 	
 	if !found {
@@ -81,7 +75,7 @@ func (m *Manager) ExecuteAction(serviceID, actionID string) error {
 	topic := fmt.Sprintf("synapse/v1/command/%s", serviceID)
 	payload := map[string]string{
 		"action_id": actionID,
-		"issued_by": "synapse-ui", // user auth not implemented yet
+		"issued_by": "synapse-ui",
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 	
@@ -104,17 +98,15 @@ func (m *Manager) Upsert(payload []byte) error {
 	}
 
 	// 2. Prepare Model
-	// We extract the embedded Service struct
 	svc := p.Service
 	svc.LastSeen = time.Now()
 
 	// 2.5 Merge with existing state (for log_stream, etc.)
 	if existing, err := m.Get(svc.ID); err == nil && existing != nil {
-		m.mergeWidgets(existing, &svc)
+		m.mergeComponents(existing, &svc)
 	}
 
 	// 3. Upsert into DB
-	// GORM Clause: OnConflict update all columns
 	err := m.db.Conn.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "id"}},
 		UpdateAll: true,
@@ -127,29 +119,25 @@ func (m *Manager) Upsert(payload []byte) error {
 	// 4. Check Monitors
 	m.evaluateMonitors(&svc)
 
-	log.Printf("Service registered: %s (%s)", svc.Name, svc.ID)
+	log.Printf("Service registered/updated: %s (%s)", svc.Name, svc.ID)
 	return nil
 }
 
-// mergeWidgets preserves state from existing widgets into the new update
-func (m *Manager) mergeWidgets(existing, incoming *models.Service) {
-	// Create a map of existing widgets for fast lookup
-	existingWidgets := make(map[string]*models.Widget)
-	for i := range existing.Widgets {
-		existingWidgets[existing.Widgets[i].ID] = &existing.Widgets[i]
+// mergeComponents preserves state from existing components into the new update
+func (m *Manager) mergeComponents(existing, incoming *models.Service) {
+	if existing.Components == nil {
+		return
 	}
 
-	for i := range incoming.Widgets {
-		newW := &incoming.Widgets[i]
-		
+	for id, newComp := range incoming.Components {
 		// 1. Handle Log Stream
-		if newW.Type == "log_stream" {
-			if oldW, ok := existingWidgets[newW.ID]; ok {
+		if newComp.Type == "log_stream" {
+			if oldComp, ok := existing.Components[id]; ok {
 				// Initialize or cast existing logs
 				var logs []interface{}
 				
 				// Handle different potential types from JSON unmarshalling
-				switch v := oldW.Value.(type) {
+				switch v := oldComp.Value.(type) {
 				case []interface{}:
 					logs = v
 				case []string:
@@ -159,25 +147,29 @@ func (m *Manager) mergeWidgets(existing, incoming *models.Service) {
 				}
 
 				// Append new value if it's a string
-				if newVal, ok := newW.Value.(string); ok {
+				if newVal, ok := newComp.Value.(string); ok {
 					logs = append(logs, newVal)
 				}
 
 				// Enforce MaxItems
 				maxItems := 10 // Default
-				if newW.MaxItems > 0 {
-					maxItems = newW.MaxItems
+				if newComp.MaxItems > 0 {
+					maxItems = newComp.MaxItems
 				}
 
 				if len(logs) > maxItems {
 					logs = logs[len(logs)-maxItems:]
 				}
 
-				newW.Value = logs
+				newComp.Value = logs
+				// Must write back to map because 'newComp' is a copy/loop variable value in Go maps? 
+				// Actually range over map gives value copy. So we need to reassign.
+				incoming.Components[id] = newComp
 			} else {
 				// First time seeing this log stream, wrap the single string in a list
-				if val, ok := newW.Value.(string); ok {
-					newW.Value = []string{val}
+				if val, ok := newComp.Value.(string); ok {
+					newComp.Value = []string{val}
+					incoming.Components[id] = newComp
 				}
 			}
 		}
@@ -185,16 +177,16 @@ func (m *Manager) mergeWidgets(existing, incoming *models.Service) {
 }
 
 func (m *Manager) evaluateMonitors(svc *models.Service) {
-	for wIdx, widget := range svc.Widgets {
-		for mIdx, monitor := range widget.Monitors {
-			triggered, err := evaluator.Evaluate(monitor.Condition, widget.Value)
+	for compID, comp := range svc.Components {
+		for mIdx, monitor := range comp.Monitors {
+			triggered, err := evaluator.Evaluate(monitor.Condition, comp.Value)
 			if err != nil {
-				log.Printf("Monitor evaluation error (svc=%s, widget=%s): %v", svc.ID, widget.Label, err)
+				log.Printf("Monitor evaluation error (svc=%s, comp=%s): %v", svc.ID, compID, err)
 				continue
 			}
 
 			// Unique key for state tracking
-			key := fmt.Sprintf("%s:w%d:m%d", svc.ID, wIdx, mIdx)
+			key := fmt.Sprintf("%s:%s:m%d", svc.ID, compID, mIdx)
 			m.alertManager.CheckAndAlert(key, triggered, monitor.Severity, monitor.Message, svc.Name)
 		}
 	}
@@ -211,15 +203,6 @@ func (m *Manager) StartTTLMonitor(interval time.Duration) {
 }
 
 func (m *Manager) checkTTL() {
-	// Logic:
-	// Find all services where status != 'offline'
-	// AND (now - last_seen) > ttl
-	// For SQLite: datetime(last_seen) < datetime('now', '-' || ttl || ' seconds')
-	
-	// Since GORM + SQLite with computed expiration is complex to write in pure Go,
-	// we will run a raw SQL update query for efficiency.
-	
-	// NOTE: We assume 'ttl' column is in Seconds.
 	query := `
 		UPDATE services 
 		SET status = 'offline', updated_at = ?
@@ -237,7 +220,6 @@ func (m *Manager) checkTTL() {
 	
 	if result.RowsAffected > 0 {
 		log.Printf("Marked %d services as offline", result.RowsAffected)
-		// In the future: trigger "Service Lost" notification here
 	}
 }
 
