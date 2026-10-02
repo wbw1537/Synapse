@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synapse Tasks</title>
+<link rel="icon" href="data:,">
+<style>
+:root{font-family:system-ui,sans-serif;color:#e4e4e7;background:#18181b}body{margin:0;display:grid;grid-template-columns:minmax(280px,370px) 1fr;height:100vh}aside{padding:24px;overflow:auto;border-right:1px solid #3f3f46}main{padding:32px;overflow:auto}h1{font-size:24px}h2{font-size:16px;color:#a1a1aa;margin-top:24px}input,select,button{background:#27272a;color:inherit;border:1px solid #52525b;border-radius:6px;padding:9px}input{width:94%}select{margin:12px 0}button{cursor:pointer}button.task{display:block;text-align:left;width:100%;margin:8px 0}button.task.selected{border-color:#34d399}small{display:block;color:#a1a1aa;margin-top:6px}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font:14px/1.6 ui-monospace,monospace}a{color:#6ee7b7}.meta{color:#a1a1aa}#error{color:#fca5a5}@media(max-width:720px){body{display:block;height:auto}aside{border-right:0;border-bottom:1px solid #3f3f46}main{padding:24px}}
+</style>
+<aside><h1>Synapse Tasks</h1><input id="search" placeholder="搜索 ID、标题、描述" aria-label="搜索任务"><select id="status" aria-label="筛选状态"><option value="open">未完成</option><option value="all">全部</option></select> <button id="refresh">刷新</button><p class="meta" id="count"></p><p id="error"></p><nav id="list"></nav><small>Markdown 为权威来源；此视图只读。修改任务后运行 sync_index.py update。</small></aside>
+<main><h1 id="title">选择任务</h1><p id="meta" class="meta"></p><p id="dependencies"></p><pre id="content">验收、验证证据和接续记录均保存在任务文件中。</pre></main>
+<script>
+const states=['backlog','ready','in-progress','blocked','done','obsoleted'];
+const $=id=>document.getElementById(id);let tasks=[],tiers={},selected=null;
+for(const state of states){const option=document.createElement('option');option.value=state;option.textContent=state;$('status').append(option)}
+async function response(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);return r}
+async function load(){try{const d=await(await response('/tasks/index.json')).json();tiers=d.tiers;tasks=Object.values(tiers).flatMap(t=>Object.values(t.tasks).flat());$('error').textContent='';render();if(selected&&tasks.some(t=>t.id===selected))await show(tasks.find(t=>t.id===selected))}catch(e){$('error').textContent=String(e)}}
+function render(){const q=$('search').value.toLowerCase(),status=$('status').value;const filtered=tasks.filter(t=>`${t.id} ${t.title} ${t.description}`.toLowerCase().includes(q)&&(status==='all'||(status==='open'?!['done','obsoleted'].includes(t.status):t.status===status)));$('count').textContent=`${filtered.length} / ${tasks.length} tasks`;$('list').replaceChildren();for(const [category,tier]of Object.entries(tiers)){const rows=filtered.filter(t=>t.category===category);if(!rows.length)continue;const heading=document.createElement('h2');heading.textContent=tier.label;$('list').append(heading);for(const t of rows){const button=document.createElement('button');button.className='task'+(t.id===selected?' selected':'');button.textContent=`${t.id} · ${t.title}`;const detail=document.createElement('small');detail.textContent=`${t.status} · ${t.priority}`;button.append(detail);button.onclick=()=>show(t);$('list').append(button)}}}
+async function show(t){selected=t.id;render();$('title').textContent=t.title;$('meta').textContent=`${t.id} · ${t.status} · ${t.priority} · ${t.file}`;$('dependencies').replaceChildren();for(const id of t.depends_on){const dep=tasks.find(row=>row.id===id);const button=document.createElement('button');button.textContent=`依赖 ${id} (${dep?.status||'missing'})`;button.onclick=()=>dep&&show(dep);$('dependencies').append(button)}try{$('content').textContent=await(await response('/'+t.file)).text()}catch(e){$('content').textContent=String(e)}}
+$('search').oninput=render;$('status').onchange=render;$('refresh').onclick=load;load();
+</script>
+</html>

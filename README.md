@@ -32,6 +32,23 @@ The system consists of two main components:
     *   Small scripts or sidecars running alongside your services.
     *   Report status and stats via MQTT.
 
+## Development workspace
+
+Read [AGENTS.md](AGENTS.md) and the [knowledge map](docs/README.md) when resuming development.
+Current work lives in [tasks/](tasks/README.md); old `plan/` files are historical.
+
+```sh
+python3 scripts/install_skills.py
+python3 scripts/agent.py doctor
+python3 scripts/agent.py check
+python3 tasks/sync_index.py next
+./scripts/tasks.sh
+```
+
+See [testing](docs/testing.md) for builds and temporary-storage development.
+The SDK is not implemented yet, and the Python example below still uses the legacy
+widget shape; use [the implemented protocol](docs/protocol.md) for new integrations.
+
 ## Quick Start
 
 ### 1. Docker (Recommended)
@@ -73,7 +90,8 @@ The dashboard will be available at **http://localhost:8080**.
 
 ### 2. Configuration
 
-Synapse looks for a `.env` file in the working directory. You can copy the example to start:
+The Go process reads environment variables. It does not load `.env` automatically.
+Copy the example and export its values before running:
 
 ```bash
 cp .env.example .env

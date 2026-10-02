@@ -23,10 +23,10 @@ type Service struct {
 	Description  string `json:"description"`
 	MarkdownDocs string `json:"markdown_docs"`
 
-	// Layout & Components (Protocol v2)
-	APIVersion string                  `json:"api_version"`
-	Layout     LayoutSchema            `gorm:"serializer:json" json:"layout"`
-	Components map[string]Component    `gorm:"serializer:json" json:"components"`
+	// Layout & Components (api_version v1)
+	APIVersion string               `json:"api_version"`
+	Layout     LayoutSchema         `gorm:"serializer:json" json:"layout"`
+	Components map[string]Component `gorm:"serializer:json" json:"components"`
 
 	// Metadata
 	LastSeen  time.Time `gorm:"index" json:"last_seen"`
@@ -100,7 +100,6 @@ type Monitor struct {
 
 // ServicePayload matches the MQTT discovery JSON
 type ServicePayload struct {
-	APIVersion string `json:"api_version"`
-	AuthToken  string `json:"auth_token"`
-	Service           // Embed Service fields
+	AuthToken string `json:"auth_token"`
+	Service          // Embed Service fields
 }

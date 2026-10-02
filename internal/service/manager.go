@@ -1,9 +1,9 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/wbw1537/synapse/internal/config"
@@ -41,11 +41,11 @@ func (m *Manager) ExecuteAction(serviceID, actionID string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// 1. Validate if action exists in the service definition
 	// We search through all components for action groups containing this ID
 	found := false
-	
+
 	for _, comp := range svc.Components {
 		if comp.Type == "action_group" {
 			for _, item := range comp.Items {
@@ -59,41 +59,56 @@ func (m *Manager) ExecuteAction(serviceID, actionID string) error {
 		if comp.ActionID == actionID {
 			found = true
 		}
-		
-		if found { break }
+
+		if found {
+			break
+		}
 	}
-	
+
 	if !found {
 		return fmt.Errorf("action '%s' not found for service '%s'", actionID, serviceID)
 	}
-	
+
 	// 2. Publish Command
 	if m.publishFunc == nil {
 		return fmt.Errorf("mqtt publisher not configured")
 	}
-	
+
 	topic := fmt.Sprintf("synapse/v1/command/%s", serviceID)
 	payload := map[string]string{
 		"action_id": actionID,
 		"issued_by": "synapse-ui",
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
-	
+
 	return m.publishFunc(topic, payload)
 }
 
 // Upsert handles the registration/update logic
 func (m *Manager) Upsert(payload []byte) error {
-	var p models.ServicePayload
-	if err := json.Unmarshal(payload, &p); err != nil {
-		return fmt.Errorf("invalid json: %w", err)
+	return m.upsert(payload, "")
+}
+
+// UpsertMQTT also verifies that the topic identifies the payload's service.
+func (m *Manager) UpsertMQTT(topic string, payload []byte) error {
+	const prefix = "synapse/v1/discovery/"
+	if !strings.HasPrefix(topic, prefix) || len(topic) == len(prefix) {
+		return fmt.Errorf("discovery topic must be synapse/v1/discovery/{id}")
+	}
+	return m.upsert(payload, strings.TrimPrefix(topic, prefix))
+}
+
+func (m *Manager) upsert(payload []byte, topicID string) error {
+	p, err := models.DecodeDiscovery(payload)
+	if err != nil {
+		return err
 	}
 
 	// 1. Validation
-	if p.ID == "" {
-		return fmt.Errorf("service id is required")
+	if topicID != "" && topicID != p.ID {
+		return fmt.Errorf("discovery topic id must match payload id")
 	}
-	if p.AuthToken != m.config.AuthToken {
+	if p.AuthToken == "" || p.AuthToken != m.config.AuthToken {
 		return fmt.Errorf("invalid auth_token")
 	}
 
@@ -107,7 +122,7 @@ func (m *Manager) Upsert(payload []byte) error {
 	}
 
 	// 3. Upsert into DB
-	err := m.db.Conn.Clauses(clause.OnConflict{
+	err = m.db.Conn.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "id"}},
 		UpdateAll: true,
 	}).Create(&svc).Error
@@ -135,7 +150,7 @@ func (m *Manager) mergeComponents(existing, incoming *models.Service) {
 			if oldComp, ok := existing.Components[id]; ok {
 				// Initialize or cast existing logs
 				var logs []interface{}
-				
+
 				// Handle different potential types from JSON unmarshalling
 				switch v := oldComp.Value.(type) {
 				case []interface{}:
@@ -162,7 +177,7 @@ func (m *Manager) mergeComponents(existing, incoming *models.Service) {
 				}
 
 				newComp.Value = logs
-				// Must write back to map because 'newComp' is a copy/loop variable value in Go maps? 
+				// Must write back to map because 'newComp' is a copy/loop variable value in Go maps?
 				// Actually range over map gives value copy. So we need to reassign.
 				incoming.Components[id] = newComp
 			} else {
@@ -209,15 +224,15 @@ func (m *Manager) checkTTL() {
 		WHERE status != 'offline' 
 		AND datetime(last_seen) < datetime(?, '-' || ttl || ' seconds')
 	`
-	
+
 	now := time.Now()
 	result := m.db.Conn.Exec(query, now, now)
-	
+
 	if result.Error != nil {
 		log.Printf("Error checking TTL: %v", result.Error)
 		return
 	}
-	
+
 	if result.RowsAffected > 0 {
 		log.Printf("Marked %d services as offline", result.RowsAffected)
 	}

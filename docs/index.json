@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "documents": [
+    {
+      "file": "docs/README.md",
+      "status": "current",
+      "summary": "Knowledge map and source precedence"
+    },
+    {
+      "file": "docs/vision.md",
+      "status": "current",
+      "summary": "Product intent and scope"
+    },
+    {
+      "file": "docs/architecture.md",
+      "status": "current",
+      "summary": "Source-level current system and known gaps"
+    },
+    {
+      "file": "docs/constraints.md",
+      "status": "current",
+      "summary": "Development boundaries and present limitations"
+    },
+    {
+      "file": "docs/protocol.md",
+      "status": "current",
+      "summary": "Implemented flat layout/component wire shape"
+    },
+    {
+      "file": "docs/development.md",
+      "status": "current",
+      "summary": "Acceptance-based workflow and recovery"
+    },
+    {
+      "file": "docs/testing.md",
+      "status": "current",
+      "summary": "Environment, verification, disposable runtime and viewer"
+    },
+    {
+      "file": "docs/operation.md",
+      "status": "current",
+      "summary": "Runtime and release procedures"
+    },
+    {
+      "file": "docs/feature/README.md",
+      "status": "current",
+      "summary": "Implemented behavior documentation index"
+    },
+    {
+      "file": "docs/decisions/001-development-workflow.md",
+      "status": "current",
+      "summary": "Accepted workspace design decision"
+    },
+    {
+      "file": "docs/decisions/002-discovery-contract.md",
+      "status": "current",
+      "summary": "Accepted v1 flat discovery contract and explicit legacy rejection"
+    },
+    {
+      "file": "docs/workflow-feedback.md",
+      "status": "current",
+      "summary": "Observed workflow results and upstream candidates"
+    },
+    {
+      "file": "docs/axon_toml_spec.md",
+      "status": "proposed",
+      "summary": "Proposed TOML schema mapped to the maintained flat discovery contract"
+    },
+    {
+      "file": "docs/sdk_specification.md",
+      "status": "proposed",
+      "summary": "Planned SDK lifecycle/API; SDK not implemented"
+    },
+    {
+      "file": "DESIGN.md",
+      "status": "historical",
+      "summary": "Original broad product proposal, including unimplemented behavior"
+    },
+    {
+      "file": "docs/api_spec.md",
+      "status": "historical",
+      "summary": "Legacy HTTP/discovery reference"
+    },
+    {
+      "file": "docs/widget_reference.md",
+      "status": "historical",
+      "summary": "Legacy widgets-array reference"
+    },
+    {
+      "file": "docs/sidecar_guide.md",
+      "status": "historical",
+      "summary": "Legacy integration reference"
+    },
+    {
+      "file": "plan/README.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/001_core_infra.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/002_service_registry.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/003_api_ingestion.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/004_frontend_dashboard.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/005_notifications.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/006_expanded_widgets.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/007_service_panel.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/mvp/008_action_triggering.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/sdk/001_toml_design.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/sdk/002_sdk_api_design.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/sdk/003_core_implementation.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/sdk/004_sdk_implementation.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "plan/sdk/axon_toml_and_sdk.md",
+      "status": "historical",
+      "summary": "Historical plan/completion report; not a current task contract"
+    }
+  ]
+}

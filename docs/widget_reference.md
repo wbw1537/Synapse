@@ -1,3 +1,6 @@
+> Historical reference. See [knowledge map](README.md) and
+> [implemented protocol](protocol.md) before relying on this document.
+
 # Synapse Widget Reference
 
 Widgets are the UI building blocks used by Axons to report data and provide interactivity on the Synapse Dashboard. These are defined in the `widgets` array within the Axon configuration payload.

@@ -1,8 +1,17 @@
+> Proposed reference. See [knowledge map](README.md) and
+> [implemented protocol](protocol.md) before relying on this document.
+
 # Synapse Axon SDK Specification
 
 This document defines the standard behavior and architecture for Synapse Axon SDKs, regardless of the implementation language (Python, Go, Rust, etc.).
 
-All official SDKs must adhere to these requirements to ensure consistent behavior across the ecosystem.
+These are planned SDK requirements. The maintained [wire contract](protocol.md)
+and [TOML mapping](axon_toml_spec.md) govern serialization: flatten identity and
+component fields, emit `api_version: "v1"`, add matching component `id` fields,
+and translate action item TOML `id` to JSON `action_id`. Do not publish `meta`,
+`props`, `default`, `widgets` or top-level `actions`. Reject missing/unsupported
+versions, ghost references and duplicate action IDs before opening a connection.
+The core enforces structural integrity; SDK value/range checks below remain planned.
 
 ## 1. Design Principles
 *   **Fail Fast**: Configuration errors (invalid TOML, schema violations) must cause the application to crash/exit *immediately* during initialization, before network connections are attempted.
@@ -20,7 +29,7 @@ An Axon SDK must implement the following state machine:
 2.  **Validate Schema**:
     *   Ensure `schema` matches the supported version.
     *   **Integrity Check**:
-        *   **Orphans**: Warn or Error if a component is defined in `[components]` but not used in `[layout]`.
+        *   **Orphans**: Warn if a component is defined in `[components]` but not used in `[layout]`.
         *   **Ghosts**: **MUST Error** if an ID is used in `[layout]` but not defined in `[components]`.
     *   **Type Check**: Validate required properties for each component type (e.g., `gauge` needs `min`/`max`).
 3.  **Initialize State**: Create an in-memory registry of components with their `default` values.
@@ -29,7 +38,7 @@ An Axon SDK must implement the following state machine:
 *Trigger*: User calls `start()`.
 
 1.  **Connect**: Establish connection to the MQTT Broker.
-2.  **Publish Discovery**: Serialize the configuration + current state into the JSON Wire Protocol and publish to `synapse/v1/discovery/{id}`.
+2.  **Publish Discovery**: Serialize the configuration + current state using the flat mapping above and publish the full snapshot to `synapse/v1/discovery/{id}` (or POST `/api/v1/discovery`). MQTT delivery acknowledgment does not prove core acceptance; HTTP readback can confirm persisted capabilities.
 3.  **Start Heartbeat**: Spawn a background task to re-publish the Discovery payload every `TTL / 2` seconds.
 
 ### Phase 3: Runtime Loop
@@ -38,7 +47,7 @@ An Axon SDK must implement the following state machine:
 1.  **State Updates**:
     *   User updates a component (e.g., `components["cpu"].set(50)`).
     *   SDK updates internal state.
-    *   SDK publishes the updated payload to MQTT immediately (or debounced).
+    *   SDK publishes the updated full snapshot to MQTT immediately (or debounced).
 2.  **Command Handling**:
     *   Subscribe to `synapse/v1/command/{id}`.
     *   On message: Parse `action_id`.

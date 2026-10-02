@@ -1,6 +1,10 @@
+> Proposed reference. See [knowledge map](README.md) and
+> [implemented protocol](protocol.md) before relying on this document.
+
 # Axon Configuration & Protocol Specification
 
-This document defines the `axon.toml` configuration schema and the Wire Protocol for Synapse.
+This document proposes the `axon.toml` configuration schema. The maintained
+wire contract is [Discovery protocol](protocol.md); the SDK is not implemented.
 
 ## 1. Overview
 
@@ -16,7 +20,7 @@ This file is the source of truth for an Axon's UI and capabilities.
 ### 2.1 Root Structure
 
 ```toml
-# Schema version matches the wire protocol version
+# Configuration schema identifier; maps to wire api_version = "v1"
 schema = "axon.card.v1"
 
 [meta]
@@ -34,11 +38,11 @@ type = "sections"         # Currently only "sections" is supported.
     [[layout.section]]
     title = "Network"
     # References IDs defined in [components]
-    components = ["wan_ip", "latency"]
+    components = ["wan_ip"]
 
     [[layout.section]]
     title = "Resources"
-    components = ["cpu_usage", "ram_usage"]
+    components = ["cpu_usage"]
 
 [components]
 # Registry of all widgets. Keys are the IDs used in [layout].
@@ -128,71 +132,33 @@ label = "Service Control"
 
 ---
 
-## 3. Wire Protocol (JSON)
+## 3. Mapping TOML to the maintained wire contract
 
-When the SDK registers with Synapse Core (via MQTT or HTTP), it sends this payload.
+The SDK must emit the flat [discovery snapshot](protocol.md), never nested `meta`
+or `props`. This mapping is a planned SDK requirement, not an implemented parser.
 
-**Topic:** `synapse/v1/discovery/{id}`
+| Configuration / runtime source | JSON destination |
+| --- | --- |
+| `schema = "axon.card.v1"` | `api_version = "v1"`; reject other configuration schemas |
+| `[meta]` fields | Copy to the top level (`id`, `name`, `icon`, `ttl`, `group`, `description`, etc.) |
+| Runtime credentials | Top-level `auth_token`; do not store real tokens in committed TOML |
+| Runtime health | Top-level `status` and `message`; initialize status as `online` |
+| `[layout].type` | `layout.type` (`sections`) |
+| `[[layout.section]]` | An element of `layout.root`, adding `type = "section"` |
+| Section `components` | Section `children` array |
+| `[components.<key>]` | Entry in the `components` object with `id = <key>` |
+| Component `default` / current state | Component `value`; never emit a `default` field |
+| Other component settings | Flat component fields (`min`, `max`, `mapping`, `unit`, etc.) |
+| Action item TOML `id` | Wire item `action_id`; do not emit item `id` |
 
-### 3.1 Structure
+Validate the resulting snapshot against the maintained contract before publication:
+all layout references must exist, component IDs must match keys, and action IDs
+must be unique. Unreferenced components are allowed by the core; the SDK may warn.
+The current configuration schema supports the six component types in the protocol,
+including `link` with flat `uri` and `text`. No standalone button component exists.
 
-```json
-{
-  "api_version": "v1", 
-  "auth_token": "...",
-  
-  "meta": {
-    "id": "my-service-id",
-    "name": "My Service",
-    "icon": "server",
-    "ttl": 30,
-    "group": "Production",
-    "description": "..."
-  },
-
-  "layout": {
-    "type": "sections",
-    "root": [
-      {
-        "type": "section",
-        "title": "Network",
-        "children": ["wan_ip", "latency"]
-      },
-      {
-        "type": "section",
-        "title": "Resources",
-        "children": ["cpu_usage", "ram_usage"]
-      }
-    ]
-  },
-
-  "components": {
-    "wan_ip": {
-      "type": "stat",
-      "label": "WAN IP",
-      "value": "Unknown",
-      "props": {
-        "copyable": true
-      }
-    },
-    "cpu_usage": {
-      "type": "gauge",
-      "label": "CPU",
-      "value": 0,
-      "props": {
-        "min": 0,
-        "max": 100,
-        "unit": "%"
-      }
-    }
-  }
-}
-```
-
-### 3.2 Key Concepts
-1.  **Split Structure**: Instead of a flat `widgets` array, we use `layout` (tree) and `components` (map).
-2.  **Stateful Updates**: The `value` field in `components` is the only part that changes at runtime.
-
-### 3.3 Runtime Updates
-After registration, the Axon pushes updates by re-publishing the full payload to the **Discovery** topic.
-*Optimization Note: Future versions may support partial updates.*
+Runtime updates and heartbeats publish the full snapshot to
+`synapse/v1/discovery/{id}` or POST `/api/v1/discovery`. MQTT topics and HTTP routes
+retain `v1`. Definition fields may change between snapshots; partial updates are
+unsupported. Log-stream semantics must follow their dedicated task before SDK
+implementation assumes a merge policy.

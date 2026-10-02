@@ -1,3 +1,6 @@
+> Historical planning archive. New work is tracked in [tasks/](../tasks/README.md);
+> see [reconciliation](../tasks/migration.md) for current status.
+
 # Synapse Planning & Roadmap
 
 This directory houses the engineering plans, feature breakdowns, and progress tracking for the Synapse project.

@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "tiers": {
+    "T0-bug-fix": {
+      "label": "Bug fixes",
+      "tasks": {
+        "backlog": [
+          {
+            "id": "SYN-102",
+            "name": "synchronize-authoritative-service-state",
+            "title": "Synchronize persisted service state with the open dashboard",
+            "file": "tasks/T0-bug-fix/synchronize-authoritative-service-state.md",
+            "category": "T0-bug-fix",
+            "status": "backlog",
+            "priority": "high",
+            "created": "2026-10-02",
+            "depends_on": [
+              "SYN-101"
+            ],
+            "description": "Make the running dashboard reflect validated server state for MQTT/HTTP registration, TTL expiration and heartbeat recovery."
+          }
+        ],
+        "ready": [
+          {
+            "id": "SYN-103",
+            "name": "define-log-stream-merge",
+            "title": "Make log-stream updates consistent and bounded",
+            "file": "tasks/T0-bug-fix/define-log-stream-merge.md",
+            "category": "T0-bug-fix",
+            "status": "ready",
+            "priority": "medium",
+            "created": "2026-10-02",
+            "depends_on": [
+              "SYN-101"
+            ],
+            "description": "Preserve the same bounded log history across first registration, subsequent updates and page reloads."
+          }
+        ],
+        "in-progress": [],
+        "blocked": [],
+        "done": [
+          {
+            "id": "SYN-101",
+            "name": "align-discovery-contract",
+            "title": "Align discovery contract, validation and documentation",
+            "file": "tasks/T0-bug-fix/align-discovery-contract.md",
+            "category": "T0-bug-fix",
+            "status": "done",
+            "priority": "high",
+            "created": "2026-10-02",
+            "depends_on": [],
+            "description": "Make the layout/component contract unambiguous and reject payloads that register while silently losing their capabilities."
+          }
+        ],
+        "obsoleted": []
+      }
+    },
+    "T1-feature": {
+      "label": "Features",
+      "tasks": {
+        "backlog": [
+          {
+            "id": "SYN-104",
+            "name": "python-axon-sdk",
+            "title": "Deliver a reference Python Axon SDK",
+            "file": "tasks/T1-feature/python-axon-sdk.md",
+            "category": "T1-feature",
+            "status": "backlog",
+            "priority": "medium",
+            "created": "2026-10-02",
+            "depends_on": [
+              "SYN-101",
+              "SYN-105"
+            ],
+            "description": "Let an integrator load an axon.toml, report metrics and bind predefined actions without implementing MQTT lifecycle boilerplate."
+          }
+        ],
+        "ready": [
+          {
+            "id": "SYN-105",
+            "name": "restore-reference-axon",
+            "title": "Restore a working layout/component reference Axon",
+            "file": "tasks/T1-feature/restore-reference-axon.md",
+            "category": "T1-feature",
+            "status": "ready",
+            "priority": "high",
+            "created": "2026-10-02",
+            "depends_on": [
+              "SYN-101"
+            ],
+            "description": "Give developers one truthful runnable example that demonstrates discovery, widgets, monitor transitions and simulated recovery actions."
+          }
+        ],
+        "in-progress": [],
+        "blocked": [],
+        "done": [],
+        "obsoleted": []
+      }
+    },
+    "T2-quality": {
+      "label": "Quality",
+      "tasks": {
+        "backlog": [],
+        "ready": [],
+        "in-progress": [],
+        "blocked": [],
+        "done": [],
+        "obsoleted": []
+      }
+    },
+    "T3-infrastructure": {
+      "label": "Infrastructure",
+      "tasks": {
+        "backlog": [
+          {
+            "id": "SYN-107",
+            "name": "runtime-access-boundaries",
+            "title": "Define and enforce runtime access boundaries",
+            "file": "tasks/T3-infrastructure/runtime-access-boundaries.md",
+            "category": "T3-infrastructure",
+            "status": "backlog",
+            "priority": "high",
+            "created": "2026-10-02",
+            "depends_on": [],
+            "description": "Prevent untrusted clients from reading operational data, forging discovery state or invoking declared recovery actions."
+          }
+        ],
+        "ready": [
+          {
+            "id": "SYN-106",
+            "name": "check-pull-requests",
+            "title": "Run reproducible checks on normal branches and PRs",
+            "file": "tasks/T3-infrastructure/check-pull-requests.md",
+            "category": "T3-infrastructure",
+            "status": "ready",
+            "priority": "medium",
+            "created": "2026-10-02",
+            "depends_on": [],
+            "description": "Catch task/document drift and backend/frontend build regressions before version-tag publication."
+          }
+        ],
+        "in-progress": [],
+        "blocked": [],
+        "done": [
+          {
+            "id": "SYN-001",
+            "name": "agentic-workspace",
+            "title": "Establish a recoverable agentic workspace",
+            "file": "tasks/T3-infrastructure/agentic-workspace.md",
+            "category": "T3-infrastructure",
+            "status": "done",
+            "priority": "high",
+            "created": "2026-10-02",
+            "depends_on": [],
+            "description": "Provide maintained task contracts, document routing, reusable skills and repeatable workspace checks so Synapse can be resumed and developed autonomously."
+          }
+        ],
+        "obsoleted": []
+      }
+    }
+  }
+}

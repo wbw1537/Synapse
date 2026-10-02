@@ -42,3 +42,8 @@ synapse.db-shm
 *.log
 web/dist/*
 !web/dist/.gitkeep
+
+# Machine-local skill links and development artifacts
+.agents/skills/
+.playwright-cli/
+.playwright/

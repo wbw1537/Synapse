@@ -1,3 +1,6 @@
+> Historical reference. See [knowledge map](README.md) and
+> [implemented protocol](protocol.md) before relying on this document.
+
 # Synapse Sidecar Implementation Guide
 
 This guide explains how to build a "Sidecar" or "Agent" that reports service status to Synapse.

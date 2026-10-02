@@ -6,7 +6,7 @@ export interface Component {
   id: string
   type: string
   label: string
-  value: any
+  value?: any
   unit?: string
   // Props
   copyable?: boolean
@@ -15,12 +15,19 @@ export interface Component {
   max?: number
   thresholds?: Record<string, string>
   max_items?: number
-  items?: any[]
+  items?: ActionGroupItem[]
   action_id?: string
   uri?: string
   text?: string
   icon?: string
   animate?: boolean
+  style?: string
+  confirm?: boolean
+}
+
+export interface ActionGroupItem {
+  action_id: string
+  label: string
   style?: string
   confirm?: boolean
 }
@@ -49,8 +56,8 @@ export interface Service {
   description: string
   markdown_docs: string
   
-  // Protocol v2
-  api_version?: string
+  // v1 wire contract; optional layout fields tolerate pre-alignment DB rows.
+  api_version?: 'v1'
   layout?: LayoutSchema
   components?: Record<string, Component>
   

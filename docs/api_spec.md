@@ -1,3 +1,6 @@
+> Historical reference. See [knowledge map](README.md) and
+> [implemented protocol](protocol.md) before relying on this document.
+
 # Synapse API Specification
 
 This document defines the data models and interfaces for Synapse v1.

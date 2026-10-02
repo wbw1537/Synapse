@@ -80,7 +80,7 @@ func main() {
 	if token := client.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		// Log receipt (optional, verbose)
 		// log.Printf("Received message on %s", msg.Topic())
-		if err := svcManager.Upsert(msg.Payload()); err != nil {
+		if err := svcManager.UpsertMQTT(msg.Topic(), msg.Payload()); err != nil {
 			log.Printf("Error processing discovery payload: %v", err)
 		}
 	}); token.Wait() && token.Error() != nil {

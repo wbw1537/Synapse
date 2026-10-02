@@ -1,0 +1,27 @@
+{
+  "api_version": "v1",
+  "auth_token": "fixture-token",
+  "id": "protocol-demo",
+  "name": "Protocol Demo",
+  "group": "Examples",
+  "tags": ["fixture"],
+  "icon": "server",
+  "url": "https://example.com",
+  "status": "online",
+  "message": "All systems ready",
+  "ttl": 30,
+  "description": "Shared backend and UI contract fixture",
+  "markdown_docs": "# Protocol Demo",
+  "layout": {
+    "type": "sections",
+    "root": [{"type": "section", "title": "Health", "children": ["uptime", "cpu", "health", "logs", "controls", "docs"]}]
+  },
+  "components": {
+    "uptime": {"id": "uptime", "type": "stat", "label": "Uptime", "value": 42, "unit": "hrs", "copyable": true, "monitors": []},
+    "cpu": {"id": "cpu", "type": "gauge", "label": "CPU", "value": 25, "min": 0, "max": 100, "unit": "%", "monitors": []},
+    "health": {"id": "health", "type": "status_indicator", "label": "Health", "value": "ok", "mapping": {"ok": {"text": "Healthy", "color": "success", "icon": "check"}}, "monitors": []},
+    "logs": {"id": "logs", "type": "log_stream", "label": "Application Logs", "value": ["Ready"], "max_items": 10, "monitors": []},
+    "controls": {"id": "controls", "type": "action_group", "label": "Controls", "items": [{"action_id": "restart", "label": "Restart", "style": "danger", "confirm": true}], "monitors": []},
+    "docs": {"id": "docs", "type": "link", "label": "Documentation", "uri": "https://example.com/docs", "text": "Open docs", "monitors": []}
+  }
+}
