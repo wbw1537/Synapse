@@ -1,7 +1,6 @@
 # Discovery protocol
 
-This is the maintained wire contract for Synapse discovery, implemented by
-`internal/models/discovery.go` and the shared service manager. The layout/component
+This is the supported wire contract for Synapse discovery. The layout/component
 refactor was historically called “v2”; the supported `api_version` is **exactly
 `"v1"`**. Missing, null, numeric and all other version values are rejected.
 
@@ -31,7 +30,7 @@ rejected even if empty/null or mixed with valid components. Unknown fields,
 including nested `meta`, component `props`, and action item `id`, are rejected.
 They are never translated automatically. This intentionally breaks legacy clients
 that previously appeared registered while losing their capabilities. Migrate them
-to the shape below. Existing database rows are not migrated by this task.
+to the shape below. Legacy database rows are not automatically migrated.
 
 ## Snapshot shape
 
@@ -101,7 +100,7 @@ same ID character rules and unique IDs within a service. Item fields are
 the action against stored declarations before publication; dispatch success does
 not prove that the Axon executed it.
 
-## Updates and known synchronization gaps
+## Updates and live dashboard state
 
 Heartbeats and updates resend a full snapshot, typically every TTL/2 seconds.
 Omitted capabilities are removed; partial updates are unsupported. Log streams are normalized by the server on every registration: a nonempty string
@@ -111,8 +110,7 @@ non-string array entries are rejected without changing storage. `max_items` is
 nonnegative, with zero/omitted meaning ten; positive values keep only the newest
 entries. First registration follows the same normalization and retention rules.
 Each repeated string publication is a new event; clients should send bounded
-array snapshots for heartbeats to avoid duplicating events. Browser consistency
-is being verified in [SYN-103](../tasks/T0-bug-fix/define-log-stream-merge.md).
+array snapshots for heartbeats to avoid duplicating events. 
 
 The browser consumes same-origin `GET /api/v1/events` SSE `services` events.
 Each event contains a complete array of persisted services, with no registration
@@ -121,7 +119,7 @@ browsers. Every connection begins with a full snapshot; clients replace their
 state and reconnect to reconcile missed updates. Periodic snapshots are sent
 at fifteen-second intervals. Raw discovery messages are not browser state.
 
-The shared [fixture](../testdata/discovery-v1.json) exercises all six components in
-backend transport tests and actual Vue card rendering. [TOML](axon_toml_spec.md)
-and [SDK](sdk_specification.md) documents describe the implemented Python mapping. The Python reference example uses the maintained shape; runtime acceptance is
-tracked in its [migration task](../tasks/T1-feature/restore-reference-axon.md).
+For Python integrations, use the [SDK guide](python-sdk.md) and
+[TOML reference](axon-toml.md). The shared
+[discovery fixture](https://github.com/wbw1537/Synapse/blob/main/testdata/discovery-v1.json)
+is a complete six-component payload example.

@@ -1,61 +1,53 @@
-# Documentation website
+# Documentation ownership and publishing
 
-The website uses MkDocs with Material, navigation, full-text search and Mermaid
-rendering. Markdown remains authoritative in the root README, docs/ and the
-Python SDK README. `docs/index.json` selects current documents. Historical plans,
-tasks and code links point back to GitHub source instead of becoming duplicate
-website pages. Build output contains only explicitly selected Markdown and the
-static site's generated assets.
+## Ownership
 
-## Preview and verify locally
+GitHub Pages is the single user-facing instruction reference. Its only Markdown
+source is `website/docs/`. Edit that source for installation, configuration,
+operations, authentication, SDK usage and protocol changes. Each topic has one
+owner page; related pages link to it rather than repeat its instructions.
+
+`docs/` holds internal development workflow, source maps, constraints, decisions,
+acceptance evidence and historical records. It is not a second user guide and is
+not published by MkDocs. Tasks remain in `tasks/`. Root and SDK READMEs are short
+entry points that direct users to the website, with links to the same source for
+readers before Pages is enabled.
+
+The [catalog](index.json) records current, proposed and historical documents in
+both source directories. Status describes document maturity, not publication.
+MkDocs publishes only `website/docs/`, independently of catalog status. Add a
+new public page to the catalog and `mkdocs.yml` navigation. Keep code/sample links
+as explicit GitHub links; public relative links should stay inside website/docs/.
+
+## Preview and verify
 
 From the repository root:
 
 ```sh
 python -m venv .venv-docs
 .venv-docs/bin/python -m pip install -r requirements-docs.txt
-python scripts/docs_site.py
 .venv-docs/bin/python -m mkdocs build --strict
 .venv-docs/bin/python -m mkdocs serve
+python3 scripts/agent.py verify --scope workspace
 ```
 
-MkDocs prints the local URL, including the `/Synapse/` project subpath. After
-editing source Markdown rerun `scripts/docs_site.py`; preview then reloads the
-staged changes. `.build/` and `.venv-docs/` are generated and ignored. Build tools
-run only on the developer/CI machine; deployed Pages is a static site.
+MkDocs reads public sources directly and reloads when they change. There is no
+staging or copying step. The local URL includes `/Synapse/`. `.build/site/` and
+`.venv-docs/` are generated and ignored. Strict builds check navigation and links;
+workspace checks cover both source directories and documentation boundaries.
 
-Add new current pages to the catalog and `mkdocs.yml` navigation. Relative links
-among published documents remain site links. Links to non-published files and
-historical documents become GitHub source links. A missing/outside-repository
-relative target fails staging; fenced examples remain unchanged. Use the source
-Markdown files, not generated copies, when editing.
+## GitHub Pages
 
-## GitHub Pages setup
+After merging, select **Settings → Pages → Build and deployment → Source →
+GitHub Actions**, then run the Documentation workflow on main or push a relevant
+change. The default project URL is `https://wbw1537.github.io/Synapse/`; the
+`github-pages` environment reports the actual deployment URL.
 
-After reviewing and merging the changes, open the repository's **Settings →
-Pages → Build and deployment → Source** and select **GitHub Actions**. Then run
-the Documentation workflow from main, or push a relevant documentation change.
-The expected default address is `https://wbw1537.github.io/Synapse/`; the workflow's
-`github-pages` environment reports the actual published URL.
+PRs only build and verify. Main pushes and manual main runs can upload and deploy
+a verified artifact. Only deployment has `pages: write` and `id-token: write`.
+Repository/environment settings may require administrator setup. Configuration
+and local acceptance do not imply that the site has been published. See
+[GitHub's Pages workflow reference](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 
-The workflow strictly builds docs on PRs without publishing. Main pushes and
-manual runs on main upload a verified Pages artifact and deploy it. Deployment
-alone receives `pages: write` and `id-token: write`; build jobs use read-only
-repository permissions. GitHub Pages settings/environment protections can still
-require a repository administrator's setup. A successful local build does not
-mean the site is already live. See [GitHub's workflow documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
-
-## Python SDK distribution
-
-SDK publication is separate from publishing this website. Python 3.11+ clients
-can install `python -m pip install ./sdk/python` from a checkout now. Once the
-SDK changes exist on GitHub, another option is:
-
-```sh
-python -m pip install 'git+https://github.com/wbw1537/Synapse.git#subdirectory=sdk/python'
-```
-
-PyPI publication is optional. It would provide installation by package name,
-`pip install synapse-axon`, after a verified version is actually released. No
-PyPI publication or package-name availability is claimed here. See the
-[SDK guide](../sdk/python/README.md) for its implementation and lifecycle.
+SDK package publication is separate; its user-facing installation instructions
+live only in the [public SDK guide](../website/docs/python-sdk.md).

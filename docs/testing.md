@@ -41,7 +41,7 @@ host:port listener addresses and connects to the selected broker address.
 Supply distinct `SYNAPSE_AUTH_TOKEN` and `SYNAPSE_ADMIN_TOKEN` in the invoking
 environment to integrate an Axon and log in. Otherwise the launcher generates
 unprinted ephemeral secrets. The browser uses the operator token, the Axon uses
-its token both for MQTT authentication and discovery. See [access policy](access.md).
+its token both for MQTT authentication and discovery. See [access policy](../website/docs/access.md).
 
 No `.env` is read automatically by Go; the launcher inherits environment and
 supplies temporary DB/token/ports. It never prints credentials. Ctrl+C terminates
@@ -50,7 +50,7 @@ the temporary process and removes its working data. It never deletes the existin
 
 ## Behavior checks
 
-Use disposable Axon IDs and the implemented payload in `docs/protocol.md`.
+Use disposable Axon IDs and the implemented payload in [public protocol](../website/docs/protocol.md).
 Test discovery through each affected transport, section/widget rendering,
 monitor state transitions, declared action publication and actual Axon handling,
 then stop heartbeats and inspect both persisted state and the still-open UI.
@@ -60,8 +60,8 @@ from another client's setup exists. Evidence must omit credentials.
 
 ## SDK and integrated acceptance
 
-Python 3.11+ and paho-mqtt 2.x are required for the reference SDK. Install with
-`python -m pip install ./sdk/python`; then run:
+Install the SDK using the [public SDK guide](../website/docs/python-sdk.md#install).
+From the repository root, run these development checks:
 
 ```sh
 PYTHONPATH=sdk/python/src python -m unittest discover -s sdk/python/tests -v

@@ -58,5 +58,5 @@ with the user.
 This is a trusted-homelab Alpha. Axons share one credential and can impersonate
 another ID if that credential is compromised. No native TLS, per-user roles,
 per-Axon keys, exactly-once action execution, result acknowledgments, durable
-history or legacy database migration is claimed. Use the [access policy](access.md)
+history or legacy database migration is claimed. Use the [access policy](../website/docs/access.md)
 and updated setup instructions before upgrading or admitting remote traffic.

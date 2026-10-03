@@ -185,6 +185,20 @@
             "created": "2026-10-03",
             "depends_on": [],
             "description": "Provide a searchable documentation site from maintained repository Markdown, ready for GitHub Pages without duplicating SDK or product documentation."
+          },
+          {
+            "id": "SYN-111",
+            "name": "public-documentation-authority",
+            "title": "Public documentation as the instruction authority",
+            "file": "tasks/T3-infrastructure/public-documentation-authority.md",
+            "category": "T3-infrastructure",
+            "status": "done",
+            "priority": "medium",
+            "created": "2026-10-03",
+            "depends_on": [
+              "SYN-110"
+            ],
+            "description": "Make GitHub Pages the single user-facing instruction reference, backed by website/docs/, while docs/ holds internal development records. Remove duplicated setup and SDK guidance."
           }
         ],
         "obsoleted": []

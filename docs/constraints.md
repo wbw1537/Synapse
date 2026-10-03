@@ -17,7 +17,6 @@ implements every security or reliability requirement.
   or committed configuration. Use example configuration for variable names.
 - Record observable verification; build success alone does not establish end-to-end correctness.
 
-Runtime access follows [the homelab policy](access.md): distinct operator/Axon
-credentials, authenticated HTTP reads/actions, MQTT authentication and topic ACLs,
-and loopback defaults. Axons share a credential and therefore a trust realm;
-per-service identities, roles and native TLS remain future work.
+For runtime authentication and deployment boundaries, use the public
+[access policy](../website/docs/access.md). Internal constraints must link to that
+contract instead of maintaining a separate policy.

@@ -4,7 +4,7 @@
     {
       "file": "docs/README.md",
       "status": "current",
-      "summary": "Knowledge map and source precedence"
+      "summary": "Internal development records and documentation ownership map"
     },
     {
       "file": "docs/vision.md",
@@ -22,9 +22,9 @@
       "summary": "Development boundaries and present limitations"
     },
     {
-      "file": "docs/protocol.md",
+      "file": "website/docs/protocol.md",
       "status": "current",
-      "summary": "Implemented flat layout/component wire shape"
+      "summary": "Public discovery wire contract"
     },
     {
       "file": "docs/development.md",
@@ -39,7 +39,7 @@
     {
       "file": "docs/operation.md",
       "status": "current",
-      "summary": "Runtime and release procedures"
+      "summary": "Internal developer runtime-change and release procedures"
     },
     {
       "file": "docs/feature/README.md",
@@ -62,14 +62,14 @@
       "summary": "Observed workflow results and upstream candidates"
     },
     {
-      "file": "docs/axon_toml_spec.md",
+      "file": "website/docs/axon-toml.md",
       "status": "current",
-      "summary": "Implemented Python reference SDK configuration and behavior"
+      "summary": "Public Axon TOML schema and mapping"
     },
     {
-      "file": "docs/sdk_specification.md",
+      "file": "website/docs/python-sdk.md",
       "status": "current",
-      "summary": "Implemented Python reference SDK configuration and behavior"
+      "summary": "Public Python SDK installation, API and lifecycle"
     },
     {
       "file": "DESIGN.md",
@@ -162,14 +162,14 @@
       "summary": "Historical plan/completion report; not a current task contract"
     },
     {
-      "file": "docs/access.md",
+      "file": "website/docs/access.md",
       "status": "current",
-      "summary": "Operator sessions, HTTP origin checks, MQTT authentication/ACL and deployment trust model"
+      "summary": "Public authentication and deployment policy"
     },
     {
       "file": "sdk/python/README.md",
       "status": "current",
-      "summary": "Implemented Python reference SDK setup, API and lifecycle verification"
+      "summary": "SDK package entry point linking to the sole public guide"
     },
     {
       "file": "docs/decisions/003-reliable-integration.md",
@@ -184,7 +184,32 @@
     {
       "file": "docs/documentation-site.md",
       "status": "current",
-      "summary": "MkDocs preview, maintained-source staging, GitHub Pages setup and optional SDK distribution"
+      "summary": "Internal documentation ownership, local preview and Pages publishing procedure"
+    },
+    {
+      "file": "website/docs/index.md",
+      "status": "current",
+      "summary": "Public documentation home"
+    },
+    {
+      "file": "website/docs/getting-started.md",
+      "status": "current",
+      "summary": "Public installation and first-use instructions"
+    },
+    {
+      "file": "website/docs/configuration.md",
+      "status": "current",
+      "summary": "Public environment configuration reference"
+    },
+    {
+      "file": "website/docs/operations.md",
+      "status": "current",
+      "summary": "Public operator diagnosis, backup and upgrade guide"
+    },
+    {
+      "file": "docs/decisions/004-documentation-ownership.md",
+      "status": "current",
+      "summary": "Accepted separation of public instructions and internal development records"
     }
   ]
 }

@@ -20,6 +20,7 @@ def module(name, path):
 tasks = module("workspace_tasks", REPO / "tasks/sync_index.py")
 installer = module("workspace_installer", REPO / "scripts/install_skills.py")
 viewer = module("workspace_viewer", REPO / "scripts/tasks_server.py")
+agent = module("workspace_agent", REPO / "scripts/agent.py")
 
 
 class TaskTests(unittest.TestCase):
@@ -115,6 +116,35 @@ Compare an HTTP snapshot and open page after stopping heartbeats.
         self.assertNotIn("SYN-101 [", output.getvalue())
 
 
+class DocumentationBoundaryTests(unittest.TestCase):
+    def test_public_links_stay_in_public_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            public = root / "website/docs"
+            public.mkdir(parents=True)
+            (root / "docs").mkdir()
+            (root / "docs/private.md").write_text("Internal evidence")
+            (public / "sdk.md").write_text("SDK guide")
+            page = public / "index.md"
+            page.write_text("[SDK](sdk.md)\n[Repo](https://github.com/example/repo)\n```md\n[Example](missing.md)\n```\n")
+            self.assertEqual(agent.links(page, root), [])
+            page.write_text("[Internal](../../docs/private.md)")
+            self.assertTrue(any("public link leaves" in e for e in agent.links(page, root)))
+            page.write_text("[Missing](missing.md)")
+            self.assertTrue(any("broken/outside" in e for e in agent.links(page, root)))
+
+    def test_internal_records_can_reference_public_contracts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            public = root / "website/docs"
+            public.mkdir(parents=True)
+            (root / "docs").mkdir()
+            (public / "protocol.md").write_text("Public contract")
+            page = root / "docs/decision.md"
+            page.write_text("[Contract](../website/docs/protocol.md)")
+            self.assertEqual(agent.links(page, root), [])
+
+
 class InstallerTests(unittest.TestCase):
     def test_install_is_repeatable_and_refuses_conflicts(self):
         with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
@@ -165,14 +195,14 @@ class ViewerTests(unittest.TestCase):
         self.assertEqual(response["status"], 200)
         self.assertEqual(json.loads(response["body"])["schema_version"], 1)
         self.assertEqual(self.request("/")["status"], 200)
-        self.assertEqual(self.request("/docs/protocol.md")["status"], 200)
+        self.assertEqual(self.request("/website/docs/protocol.md")["status"], 200)
         head = self.request("/tasks/index.json", False)
         self.assertEqual(head["status"], 200)
         self.assertEqual(head["body"], b"")
 
     def test_unrelated_data_and_traversal_denied(self):
         for path in ("/.env", "/synapse.db", "/internal/models/service.go", "/.git/config",
-                     "/tasks/../.env", "/tasks/%2e%2e/.env", "/tasks/sync_index.py"):
+                     "/website/README.md", "/website/docs/../../.env", "/tasks/../.env", "/tasks/%2e%2e/.env", "/tasks/sync_index.py"):
             with self.subTest(path=path):
                 self.assertEqual(self.request(path)["status"], 404)
 

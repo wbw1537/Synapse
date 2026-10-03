@@ -37,7 +37,7 @@ and retention applies from first registration. The UI replaces state from server
 snapshots without merging raw events. Mutations are serialized so concurrent
 read-modify-write updates cannot lose log entries. Browser rendering and runtime lifecycle acceptance passed SYN-102/SYN-103.
 Operator sessions protect reads/actions/state streams; broker access and listener
-defaults follow [the access policy](access.md). The Python reference SDK performs
+defaults follow [the access policy](../website/docs/access.md). The Python reference SDK performs
 TOML validation, typed updates and client lifecycle management.
 
 The frontend is built before Go compilation because `ui.go` embeds `web/dist/*`.

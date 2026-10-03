@@ -21,6 +21,7 @@ class Handler(BaseHTTPRequestHandler):
         file = (ROOT / relative).resolve()
         allowed = file.is_relative_to(ROOT / "tasks") and file.suffix in (".md", ".json")
         allowed |= file.is_relative_to(ROOT / "docs") and file.suffix == ".md"
+        allowed |= file.is_relative_to(ROOT / "website/docs") and file.suffix == ".md"
         allowed |= file == ROOT / "scripts/tasks-viewer.html"
         if not file.is_relative_to(ROOT) or not allowed or not file.is_file():
             self.send_error(404)

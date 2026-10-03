@@ -1,5 +1,5 @@
 > Historical reference. See [knowledge map](README.md) and
-> [implemented protocol](protocol.md) before relying on this document.
+> [implemented protocol](../website/docs/protocol.md) before relying on this document.
 
 # Synapse Sidecar Implementation Guide
 

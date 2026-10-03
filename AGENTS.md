@@ -8,7 +8,7 @@ and a Vue UI. Keep deployment and integration lightweight.
 
 - Read `docs/README.md` for the knowledge map and known documentation conflicts.
 - Product intent: `docs/vision.md`; implementation: `docs/architecture.md`.
-- Boundaries: `docs/constraints.md`; current wire shape: `docs/protocol.md`.
+- Boundaries: `docs/constraints.md`; public wire contract: `website/docs/protocol.md`.
 - Work queue: `tasks/README.md`, `tasks/index.json`, and the relevant task file.
 - Environment and checks: `docs/testing.md`; workflow: `docs/development.md`.
 - Historical plans are in `plan/`; they are not the current work queue.
@@ -28,8 +28,10 @@ important decisions rather than silently treating proposed behavior as implement
   model's opinion. Do not weaken acceptance criteria or checks to obtain a pass.
 - Before interruption or handoff, record the current state, evidence, remaining
   work, and next action in the task. Use `blocked` for a concrete external blocker.
+- User instructions belong only in `website/docs/`, the GitHub Pages source.
+  Keep `docs/` for development records and READMEs as links to the public guides.
 - Update only affected docs. Architecture decisions go in `docs/decisions/`;
-  implementation behavior goes in existing feature/protocol docs.
+  public behavior goes in its existing website owner page.
 - Run `python3 tasks/sync_index.py update` after task metadata changes and
   `python3 scripts/agent.py check` before handing off workflow/doc changes.
 - Commit, push, deploy, and mutate live services only within the user's request.

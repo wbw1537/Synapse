@@ -6,7 +6,7 @@ description: Verify Synapse changes with focused Go/Vue checks and isolated-stor
 # Synapse Testing
 
 Read [testing reference](../../docs/testing.md) and the task acceptance before
-choosing checks. Use [implemented protocol](../../docs/protocol.md), not legacy
+choosing checks. Use [implemented protocol](../../website/docs/protocol.md), not legacy
 widget payloads or proposed nested meta/props, for current runtime integrations.
 
 Start with `python3 scripts/agent.py doctor`. Run workspace checks for tooling/docs,

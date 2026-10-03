@@ -14,7 +14,9 @@ sys.path.insert(0, str(ROOT / "tasks"))
 import sync_index
 
 
-def links(path):
+def links(path, root=ROOT):
+    root = root.resolve()
+    public = root / "website/docs"
     text = path.read_text(encoding="utf-8")
     text = re.sub(r"^```.*?^```[^\n]*", "", text, flags=re.M | re.S)
     errors = []
@@ -23,9 +25,11 @@ def links(path):
         if not target or target.startswith("#") or re.match(r"[a-zA-Z][\w+.-]*:", target):
             continue
         file = target.split("#", 1)[0]
-        resolved = (ROOT / file.lstrip("/") if file.startswith("/") else path.parent / file).resolve()
-        if not resolved.is_relative_to(ROOT.resolve()) or not resolved.exists():
-            errors.append(f"{path.relative_to(ROOT)}: broken/outside link {target}")
+        resolved = (root / file.lstrip("/") if file.startswith("/") else path.parent / file).resolve()
+        if not resolved.is_relative_to(root) or not resolved.exists():
+            errors.append(f"{path.relative_to(root)}: broken/outside link {target}")
+        elif path.is_relative_to(public) and not resolved.is_relative_to(public):
+            errors.append(f"{path.relative_to(root)}: public link leaves website/docs: {target}")
     return errors
 
 
@@ -48,9 +52,12 @@ def check():
                 maintained.append(path)
             if not entry.get("summary"):
                 errors.append(f"missing document summary: {entry['file']}")
-        for path in (ROOT / "docs").rglob("*.md"):
-            if str(path.relative_to(ROOT)) not in seen:
-                errors.append(f"uncatalogued document: {path.relative_to(ROOT)}")
+        for directory in (ROOT / "docs", ROOT / "website/docs"):
+            for path in directory.rglob("*.md"):
+                if str(path.relative_to(ROOT)) not in seen:
+                    errors.append(f"uncatalogued document: {path.relative_to(ROOT)}")
+                if path.is_relative_to(ROOT / "website/docs"):
+                    maintained.append(path)
     except (OSError, ValueError, KeyError, TypeError) as exc:
         errors.append(f"invalid docs/index.json: {exc}")
     maintained += list((ROOT / "tasks").rglob("*.md"))

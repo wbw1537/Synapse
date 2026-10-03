@@ -15,7 +15,7 @@ ASCII letters, digits, underscores and hyphens so HTTP/MQTT paths are unambiguou
 Actions are declared in action groups; the speculative standalone action field
 is unsupported. Empty snapshots and unreferenced components remain supported.
 
-The [protocol](../protocol.md) is the single maintained wire reference. Proposed
+The [protocol](../../website/docs/protocol.md) is the single maintained wire reference. Proposed
 TOML/SDK documents map to it rather than defining another wire format. No SDK,
 legacy compatibility layer or existing-row migration is introduced. Raw MQTT UI
 state and log-stream merge semantics remain separate tasks.

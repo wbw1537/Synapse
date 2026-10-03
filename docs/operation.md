@@ -1,25 +1,22 @@
-# Synapse operations
+# Developer operations and releases
 
-Inspect the intended environment first. No production host or deployment target
-is configured by this workflow. Do not reuse Beanpilot hosts, credentials, or scripts.
+For operator procedures use the public [operations guide](../website/docs/operations.md)
+and [access policy](../website/docs/access.md). This record governs development
+and release work, rather than duplicating deployment instructions.
 
-Local Compose: `docker compose ps`, `docker compose logs --tail 100 synapse`.
-Inspect relevant logs without printing `.env`, raw credential-bearing discovery
-payloads, or DB contents. Check listener ports, volume mounts, selected image and
-Git revision when diagnosing a deployment.
+Identify the actual target environment before changing runtime state. No
+production target is configured by the development workflow. Do not reuse
+Beanpilot hosts, credentials or scripts. Deployment, restarts and database
+migrations require authorization for the intended target. Plan compatibility and
+backups before making changes; use disposable runtimes for development checks.
 
-`docker compose up -d --build` deploys the current working tree and changes the
-runtime. Run only when requested/authorized. Plan DB backup and compatibility
-before migrations; do not delete `synapse.db` merely because an old Alpha task
-suggested resetting it. Verify HTTP, MQTT ingestion and UI after operations.
+`.github/workflows/ci.yml` verifies branch pushes, PRs and `v*` tags. Verification
+builds frontend assets before Go embedding checks, runs workspace and application
+tests, race checks and SDK lifecycle acceptance. Docker publication requires a
+version-tag push and successful verification. Ordinary checks do not publish or
+deploy. Remote CI execution is separate from local workflow validation.
 
-See [access policy](access.md) before selecting listener/published addresses. Set
-two distinct secrets; native listeners and Compose host ports default to loopback.
-Use HTTPS/secure cookies for remote browser access, and a private network or tunnel
-for MQTT. Back up SQLite before upgrades; legacy registered rows are not migrated.
-
-`.github/workflows/ci.yml` runs verification on branch pushes, PRs and `v*` tags.
-Verification builds frontend before Go embedding checks, runs workspace and
-application tests, race checks and SDK lifecycle acceptance. Docker publication
-requires a version-tag push and successful verification; ordinary checks do not
-publish or deploy. Remote CI execution is separate from local workflow validation.
+Documentation publication is maintained in [documentation-site.md](documentation-site.md).
+SDK distribution metadata is in `sdk/python/pyproject.toml`; build/install evidence
+belongs in the task and [testing records](testing.md), while public installation
+steps belong in the [SDK guide](../website/docs/python-sdk.md).

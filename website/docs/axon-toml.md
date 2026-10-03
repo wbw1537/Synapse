@@ -1,7 +1,7 @@
-# Axon Configuration & Protocol Specification
+# Axon TOML configuration
 
 This document describes the `axon.toml` configuration schema. The maintained
-wire contract is [Discovery protocol](protocol.md); implemented by the [Python SDK](../sdk/python/README.md).
+wire contract is [Discovery protocol](protocol.md); implemented by the [Python SDK](python-sdk.md).
 
 ## 1. Overview
 
@@ -12,7 +12,7 @@ The Synapse Protocol separates **Definition** (UI Layout) from **State** (Compon
 
 ## 2. Configuration: `axon.toml`
 
-This file is the source of truth for an Axon's UI and capabilities.
+This file defines an Axon's UI and capabilities.
 
 ### 2.1 Root Structure
 
@@ -113,6 +113,18 @@ label = "Application Logs"
 max_items = 50
 ```
 
+#### `link`
+
+A navigable HTTP/HTTPS link.
+
+```toml
+[components.documentation]
+type = "link"
+label = "Documentation"
+uri = "https://example.com/docs"
+text = "Open documentation"
+```
+
 #### `action_group`
 Buttons that trigger remote actions.
 ```toml
@@ -154,12 +166,7 @@ must be unique. Unreferenced components are allowed by the core; the SDK may war
 The implemented configuration schema supports the six component types in the protocol,
 including `link` with flat `uri` (http/https) and `text`. No standalone button component exists.
 
-Runtime updates and heartbeats publish the full snapshot to
-`synapse/v1/discovery/{id}` or POST `/api/v1/discovery`. MQTT topics and HTTP routes
-retain `v1`. Definition fields may change between snapshots; partial updates are
-unsupported. The SDK keeps a bounded local log array and publishes it as a full snapshot;
-string updates append to this local array and array updates replace it. This makes
-heartbeat publication idempotent. Configuration requires positive `max_items`
-(default ten). Gauge defaults to min if omitted; status_indicator needs a string
-default matching its mapping. Action groups require an items array and declared
-callbacks before start. Unknown configuration fields are rejected.
+For publishing and runtime updates, see the [Python SDK lifecycle](python-sdk.md#lifecycle-and-runtime-updates).
+Configuration requires positive `max_items` (default ten). Gauge defaults to min
+if omitted; status_indicator needs a string default matching its mapping.
+Action groups require an items array. Unknown configuration fields are rejected.
