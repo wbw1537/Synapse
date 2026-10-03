@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useServiceStore } from './stores/services'
 import ServiceCard from './components/ServiceCard.vue'
 import ServiceDrawer from './components/ServiceDrawer.vue'
@@ -8,9 +8,21 @@ import { Wifi, WifiOff } from 'lucide-vue-next'
 const store = useServiceStore()
 
 onMounted(() => {
-  store.fetchServices()
-  store.initMQTT()
+  void store.checkSession()
 })
+
+onUnmounted(() => store.stopEvents())
+
+const token = ref('')
+const loginError = ref('')
+const submitting = ref(false)
+const login = async () => {
+  submitting.value = true
+  loginError.value = ''
+  try { await store.login(token.value); token.value = '' }
+  catch (err) { loginError.value = err instanceof Error ? err.message : 'Login failed' }
+  finally { submitting.value = false }
+}
 
 const sortedServices = computed(() => {
   return Object.values(store.services).sort((a, b) => {
@@ -23,6 +35,15 @@ const sortedServices = computed(() => {
 
 <template>
   <div class="min-h-screen bg-zinc-950 text-zinc-100 p-6 md:p-10 font-sans selection:bg-emerald-500/30">
+    <form v-if="!store.authenticated" @submit.prevent="login" class="max-w-sm mx-auto mt-24 p-8 rounded-2xl bg-zinc-900 border border-zinc-800">
+      <h1 class="text-3xl font-bold mb-2">Synapse</h1>
+      <p class="text-zinc-400 mb-6">Sign in to your homelab dashboard.</p>
+      <label for="operator-token" class="block text-sm mb-2">Operator token</label>
+      <input id="operator-token" v-model="token" type="password" autocomplete="current-password" required class="w-full p-3 rounded-lg bg-zinc-950 border border-zinc-700 mb-4" />
+      <p v-if="loginError" role="alert" class="text-rose-400 mb-4">{{ loginError }}</p>
+      <button :disabled="submitting" class="w-full p-3 rounded-lg bg-emerald-600 font-semibold disabled:opacity-50">{{ submitting ? 'Signing in…' : 'Sign in' }}</button>
+    </form>
+    <template v-else>
     <header class="max-w-7xl mx-auto mb-10 flex items-center justify-between">
       <div>
         <div class="flex items-center gap-3">
@@ -35,8 +56,9 @@ const sortedServices = computed(() => {
         <p class="text-zinc-500 mt-1 font-medium">The nervous system of your homelab.</p>
       </div>
 
-      <div class="hidden md:flex items-center gap-4 text-xs font-bold text-zinc-600 uppercase tracking-widest">
-        <span>{{ sortedServices.length }} Services</span>
+      <div class="flex items-center gap-4 text-xs font-bold text-zinc-600 uppercase tracking-widest">
+        <span class="hidden sm:inline">{{ sortedServices.length }} Services</span>
+        <button @click="store.logout()" class="text-zinc-400 hover:text-white">Sign out</button>
       </div>
     </header>
     
@@ -61,6 +83,7 @@ const sortedServices = computed(() => {
     </footer>
 
     <ServiceDrawer />
+    </template>
   </div>
 </template>
 

@@ -63,13 +63,13 @@
     },
     {
       "file": "docs/axon_toml_spec.md",
-      "status": "proposed",
-      "summary": "Proposed TOML schema mapped to the maintained flat discovery contract"
+      "status": "current",
+      "summary": "Implemented Python reference SDK configuration and behavior"
     },
     {
       "file": "docs/sdk_specification.md",
-      "status": "proposed",
-      "summary": "Planned SDK lifecycle/API; SDK not implemented"
+      "status": "current",
+      "summary": "Implemented Python reference SDK configuration and behavior"
     },
     {
       "file": "DESIGN.md",
@@ -160,6 +160,31 @@
       "file": "plan/sdk/axon_toml_and_sdk.md",
       "status": "historical",
       "summary": "Historical plan/completion report; not a current task contract"
+    },
+    {
+      "file": "docs/access.md",
+      "status": "current",
+      "summary": "Operator sessions, HTTP origin checks, MQTT authentication/ACL and deployment trust model"
+    },
+    {
+      "file": "sdk/python/README.md",
+      "status": "current",
+      "summary": "Implemented Python reference SDK setup, API and lifecycle verification"
+    },
+    {
+      "file": "docs/decisions/003-reliable-integration.md",
+      "status": "current",
+      "summary": "SSE state, server log normalization, credential realms, SDK and CI decisions"
+    },
+    {
+      "file": "docs/acceptance.md",
+      "status": "current",
+      "summary": "Reliable integration Alpha scope, observable acceptance evidence and remaining limitations"
+    },
+    {
+      "file": "docs/documentation-site.md",
+      "status": "current",
+      "summary": "MkDocs preview, maintained-source staging, GitHub Pages setup and optional SDK distribution"
     }
   ]
 }

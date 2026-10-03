@@ -1,0 +1,72 @@
+site_name: Synapse Documentation
+site_description: Self-hosted homelab operations, Axon integrations and development
+site_url: https://wbw1537.github.io/Synapse/
+repo_url: https://github.com/wbw1537/Synapse
+repo_name: wbw1537/Synapse
+docs_dir: .build/docs
+site_dir: .build/site
+strict: true
+use_directory_urls: true
+
+theme:
+  name: material
+  font: false
+  palette:
+    primary: teal
+    accent: teal
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - tables
+  - attr_list
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: true
+
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    not_found: warn
+    unrecognized_links: warn
+    anchors: warn
+
+nav:
+  - Home: index.md
+  - Integrate an Axon:
+      - Discovery protocol: docs/protocol.md
+      - Python SDK: sdk/python/README.md
+      - SDK behavior: docs/sdk_specification.md
+      - TOML configuration: docs/axon_toml_spec.md
+  - Operate Synapse:
+      - Access and deployment: docs/access.md
+      - Operations: docs/operation.md
+      - Verified Alpha behavior: docs/acceptance.md
+  - Develop:
+      - Product intent: docs/vision.md
+      - Architecture: docs/architecture.md
+      - Constraints: docs/constraints.md
+      - Development workflow: docs/development.md
+      - Testing: docs/testing.md
+      - Documentation website: docs/documentation-site.md
+      - Features: docs/feature/README.md
+      - Knowledge map: docs/README.md
+      - Workflow feedback: docs/workflow-feedback.md
+  - Decisions:
+      - Development workspace: docs/decisions/001-development-workflow.md
+      - Discovery contract: docs/decisions/002-discovery-contract.md
+      - Reliable integration Alpha: docs/decisions/003-reliable-integration.md

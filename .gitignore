@@ -47,3 +47,12 @@ web/dist/*
 .agents/skills/
 .playwright-cli/
 .playwright/
+
+# Python package build output
+*.egg-info/
+sdk/python/build/
+sdk/python/dist/
+
+# Documentation build and local tooling
+.build/
+.venv-docs/

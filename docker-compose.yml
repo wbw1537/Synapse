@@ -4,14 +4,19 @@ services:
     container_name: synapse
     restart: unless-stopped
     ports:
-      - "8080:8080" # HTTP UI & API
-      - "1883:1883" # MQTT TCP
-      - "8083:8083" # MQTT WebSocket
+      - "127.0.0.1:8080:8080" # HTTP UI & API
+      - "127.0.0.1:1883:1883" # MQTT TCP
+      - "127.0.0.1:8083:8083" # MQTT WebSocket
     volumes:
       - synapse-data:/data
     environment:
       - SYNAPSE_DB_PATH=/data/synapse.db
-      - SYNAPSE_AUTH_TOKEN=synapse-secret # Change this!
+      - SYNAPSE_AUTH_TOKEN=${SYNAPSE_AUTH_TOKEN:?Set SYNAPSE_AUTH_TOKEN}
+      - SYNAPSE_ADMIN_TOKEN=${SYNAPSE_ADMIN_TOKEN:?Set SYNAPSE_ADMIN_TOKEN}
+      - SYNAPSE_COOKIE_SECURE=${SYNAPSE_COOKIE_SECURE:-false}
+      - SYNAPSE_HTTP_PORT=:8080
+      - SYNAPSE_MQTT_PORT=:1883
+      - SYNAPSE_WS_PORT=:8083
       # Optional SMTP settings
       # - SYNAPSE_ENABLE_ALERTS=true
       # - SYNAPSE_SMTP_HOST=smtp.example.com

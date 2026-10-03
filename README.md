@@ -9,7 +9,7 @@ Synapse is an open-source, self-hosted infrastructure platform designed for home
 ## Features
 
 *   **Self-Registration**: Axons announce themselves. No more editing YAML config files for the dashboard.
-*   **Live Status**: Real-time updates via MQTT WebSockets.
+*   **Live Status**: Real-time validated state via same-origin server events.
 *   **TTL Monitoring**: Automatic "Offline" detection if an Axon stops reporting.
 *   **Single Binary**: Synapse Core (Go), Database (SQLite), Broker (MQTT), and Frontend (Vue) all in one executable.
 
@@ -36,6 +36,8 @@ The system consists of two main components:
 
 Read [AGENTS.md](AGENTS.md) and the [knowledge map](docs/README.md) when resuming development.
 Current work lives in [tasks/](tasks/README.md); old `plan/` files are historical.
+See [documentation website setup](docs/documentation-site.md) for local preview
+and GitHub Pages publishing.
 
 ```sh
 python3 scripts/install_skills.py
@@ -46,8 +48,8 @@ python3 tasks/sync_index.py next
 ```
 
 See [testing](docs/testing.md) for builds and temporary-storage development.
-The SDK is not implemented yet, and the Python example below still uses the legacy
-widget shape; use [the implemented protocol](docs/protocol.md) for new integrations.
+The reference [Python SDK](sdk/python/README.md) is available. The Python example uses the maintained
+[layout/component protocol](docs/protocol.md).
 
 ## Quick Start
 
@@ -60,8 +62,11 @@ The easiest way to run Synapse is using Docker Compose.
 git clone https://github.com/wbw1537/synapse.git
 cd synapse
 
-# 2. Start the application
-docker-compose up -d
+# 2. Configure distinct random Axon/operator secrets in .env
+cp .env.example .env
+
+# 3. Start the application after configuring the secrets
+docker compose up -d
 ```
 
 ### 2. Build from Source
@@ -82,11 +87,15 @@ cd ..
 # 3. Build the Backend (embeds frontend)
 go build -o synapse cmd/synapse/main.go
 
-# 4. Run
+# 4. Set distinct random secrets, then run
+export SYNAPSE_AUTH_TOKEN="<axon-token>"
+export SYNAPSE_ADMIN_TOKEN="<different-operator-token>"
 ./synapse
 ```
 
-The dashboard will be available at **http://localhost:8080**.
+The dashboard will be available at **http://localhost:8080**. Sign in with the
+operator token. Native and Compose host listeners default to loopback; see the
+[access policy](docs/access.md) before admitting remote clients.
 
 ### 2. Configuration
 
@@ -100,12 +109,14 @@ cp .env.example .env
 | Variable                | Default             | Description                                      |
 |:------------------------|:--------------------|:-------------------------------------------------|
 | **Core**                |                     |                                                  |
-| `SYNAPSE_HTTP_PORT`     | `:8080`             | Port for the Web UI and HTTP API.                |
-| `SYNAPSE_MQTT_PORT`     | `:1883`             | TCP Port for the embedded MQTT Broker.           |
-| `SYNAPSE_WS_PORT`       | `:8083`             | WebSocket Port for MQTT (used by UI).            |
+| `SYNAPSE_HTTP_PORT`     | `127.0.0.1:8080`             | Port for the Web UI and HTTP API.                |
+| `SYNAPSE_MQTT_PORT`     | `127.0.0.1:1883`             | TCP Port for the embedded MQTT Broker.           |
+| `SYNAPSE_WS_PORT`       | `127.0.0.1:8083`             | MQTT WebSocket listener; UI uses HTTP SSE.            |
 | `SYNAPSE_DB_PATH`       | `synapse.db`        | Path to the SQLite database file.                |
 | **Security**            |                     |                                                  |
-| `SYNAPSE_AUTH_TOKEN`    | `synapse-secret`    | PSK for service registration.                    |
+| `SYNAPSE_AUTH_TOKEN`    | required    | Axon connection and registration secret.                    |
+| `SYNAPSE_ADMIN_TOKEN` | required | Distinct operator login/API secret. |
+| `SYNAPSE_COOKIE_SECURE` | `false` | Set true behind an HTTPS reverse proxy. |
 | **Notifications**       |                     |                                                  |
 | `SYNAPSE_ENABLE_ALERTS` | `false`             | Enable SMTP email notifications.                 |
 | `SYNAPSE_SMTP_HOST`     |                     | SMTP Server Hostname (e.g., smtp.gmail.com).     |
@@ -134,7 +145,7 @@ pip install paho-mqtt psutil
 
 **2. Run the Axon**
 ```bash
-python3 examples/memory_axon.py
+SYNAPSE_AUTH_TOKEN="<matching-core-token>" python3 examples/memory_axon.py
 ```
 
 **What happens?**
@@ -143,7 +154,10 @@ The script will register a "Memory Monitor" service on the dashboard and cycle t
 2.  **Critical (5s)**: Simulates a spike to 95%, triggering a "Critical" alert on the dashboard.
 3.  **Normal (Resumed)**: Returns to normal reporting.
 
-You can modify this script to monitor your own actual services.
+The script reads `SYNAPSE_AUTH_TOKEN`, optional `SYNAPSE_MQTT_HOST`,
+`SYNAPSE_MQTT_PORT` (numeric port), and `SYNAPSE_SERVICE_ID` from the environment.
+It keeps five log samples and handles declared actions through simulated callbacks.
+The built-in scenario uses simulated readings; adapt it to monitor real services.
 
 ### Manual Registration
 
@@ -151,28 +165,35 @@ You can also manually register an Axon using **MQTT** (preferred) or **HTTP**.
 
 **Option A: MQTT**
 ```python
+import os
 import paho.mqtt.publish as publish
 import json
 
 payload = {
     "api_version": "v1",
-    "auth_token": "synapse-secret",
+    "auth_token": os.environ["SYNAPSE_AUTH_TOKEN"],
     "id": "my-service",
     "name": "My Service",
     "status": "online",
-    "ttl": 30
+    "ttl": 30,
+    "layout": {"type": "sections", "root": []},
+    "components": {}
 }
 
-publish.single("synapse/v1/discovery/my-service", json.dumps(payload), hostname="localhost")
+publish.single("synapse/v1/discovery/my-service", json.dumps(payload),
+               hostname="localhost", client_id="my-service",
+               auth={"username": "axon", "password": os.environ["SYNAPSE_AUTH_TOKEN"]})
 ```
 
 **Option B: HTTP (Curl)**
 ```bash
 curl -X POST http://localhost:8080/api/v1/discovery \
-  -d '{"id": "my-service", "name": "My Service", "status": "online", "ttl": 30, "auth_token": "synapse-secret"}'
+  -H "Content-Type: application/json" \
+  -d '{"api_version":"v1","id":"my-service","name":"My Service","status":"online","ttl":30,"auth_token":"<axon-token>","layout":{"type":"sections","root":[]},"components":{}}'
 ```
 
-See [docs/sidecar_guide.md](docs/sidecar_guide.md) for detailed integration guides.
+Use the [Python SDK](sdk/python/README.md), [maintained protocol](docs/protocol.md)
+and [access policy](docs/access.md) for new integrations.
 
 ## Troubleshooting
 

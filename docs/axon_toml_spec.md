@@ -1,10 +1,7 @@
-> Proposed reference. See [knowledge map](README.md) and
-> [implemented protocol](protocol.md) before relying on this document.
-
 # Axon Configuration & Protocol Specification
 
-This document proposes the `axon.toml` configuration schema. The maintained
-wire contract is [Discovery protocol](protocol.md); the SDK is not implemented.
+This document describes the `axon.toml` configuration schema. The maintained
+wire contract is [Discovery protocol](protocol.md); implemented by the [Python SDK](../sdk/python/README.md).
 
 ## 1. Overview
 
@@ -68,8 +65,8 @@ Displays a key-value pair.
 [components.my_stat]
 type = "stat"
 label = "Uptime"
-unit = "hrs" (optional)
-copyable = true (optional)
+unit = "hrs" # optional
+copyable = true # optional
 ```
 
 #### `status_indicator`
@@ -134,8 +131,8 @@ label = "Service Control"
 
 ## 3. Mapping TOML to the maintained wire contract
 
-The SDK must emit the flat [discovery snapshot](protocol.md), never nested `meta`
-or `props`. This mapping is a planned SDK requirement, not an implemented parser.
+The SDK emits the flat [discovery snapshot](protocol.md), never nested `meta`
+or `props`. This mapping is implemented by the Python reference parser.
 
 | Configuration / runtime source | JSON destination |
 | --- | --- |
@@ -154,11 +151,15 @@ or `props`. This mapping is a planned SDK requirement, not an implemented parser
 Validate the resulting snapshot against the maintained contract before publication:
 all layout references must exist, component IDs must match keys, and action IDs
 must be unique. Unreferenced components are allowed by the core; the SDK may warn.
-The current configuration schema supports the six component types in the protocol,
-including `link` with flat `uri` and `text`. No standalone button component exists.
+The implemented configuration schema supports the six component types in the protocol,
+including `link` with flat `uri` (http/https) and `text`. No standalone button component exists.
 
 Runtime updates and heartbeats publish the full snapshot to
 `synapse/v1/discovery/{id}` or POST `/api/v1/discovery`. MQTT topics and HTTP routes
 retain `v1`. Definition fields may change between snapshots; partial updates are
-unsupported. Log-stream semantics must follow their dedicated task before SDK
-implementation assumes a merge policy.
+unsupported. The SDK keeps a bounded local log array and publishes it as a full snapshot;
+string updates append to this local array and array updates replace it. This makes
+heartbeat publication idempotent. Configuration requires positive `max_items`
+(default ten). Gauge defaults to min if omitted; status_indicator needs a string
+default matching its mapping. Action groups require an items array and declared
+callbacks before start. Unknown configuration fields are rejected.

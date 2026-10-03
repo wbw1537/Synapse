@@ -17,6 +17,7 @@ implements every security or reliability requirement.
   or committed configuration. Use example configuration for variable names.
 - Record observable verification; build success alone does not establish end-to-end correctness.
 
-Current gaps: the broker allows all connections; HTTP service/action routes lack
-login/access control; discovery validates a token embedded in the payload. Do not
-claim these boundaries are secure or suitable for exposure without hardening.
+Runtime access follows [the homelab policy](access.md): distinct operator/Axon
+credentials, authenticated HTTP reads/actions, MQTT authentication and topic ACLs,
+and loopback defaults. Axons share a credential and therefore a trust realm;
+per-service identities, roles and native TLS remain future work.

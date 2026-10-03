@@ -15,6 +15,10 @@ refactor was historically called “v2”; the supported `api_version` is **exac
 | Request declared action | `POST /api/v1/services/{id}/actions/{action_id}` |
 | Axon command subscription | `synapse/v1/command/{id}` |
 
+HTTP discovery authenticates with the payload token. MQTT additionally requires
+username `axon`, Axon token password and a service-matching client ID, with topic
+ACLs. Reads, actions and SSE require operator authentication; see [access policy](access.md).
+
 HTTP and MQTT call the same decoder, validator and persistence logic. MQTT also
 requires the topic suffix to equal the top-level service `id`, with no extra path
 segments. HTTP success is `200 OK` with `OK`; invalid registration is `400` with
@@ -84,8 +88,9 @@ drawer can still display them). Repeated layout references are allowed.
 Mapping entries contain `text`, `color`, `icon`, optional `animate`. All components
 may carry `monitors` with `condition`, `severity`, `message`; the core evaluates
 conditions against `value`. The typed Go decoder checks declared field types,
-but `value` is arbitrary JSON; per-widget value/range validation and SDK fail-fast
-checks remain future work. Valid structural discovery does not guarantee sensible
+but `value` is arbitrary JSON except validated log_stream forms. The Python SDK
+adds typed initial/update checks; core per-widget range/expression validation
+remains future work. Valid structural discovery does not guarantee sensible
 measurement values or a valid monitor expression.
 
 Actions are supported only through `action_group.items[].action_id`, using the
@@ -99,17 +104,24 @@ not prove that the Axon executed it.
 ## Updates and known synchronization gaps
 
 Heartbeats and updates resend a full snapshot, typically every TTL/2 seconds.
-Omitted capabilities are removed; partial updates are unsupported. The existing
-log-stream merge is a special case and has known snapshot/event inconsistencies
-tracked in [SYN-103](../tasks/T0-bug-fix/define-log-stream-merge.md).
+Omitted capabilities are removed; partial updates are unsupported. Log streams are normalized by the server on every registration: a nonempty string
+appends one event, a string array replaces the history (an empty array clears it),
+and null/missing or an empty string preserves history. Other value types and
+non-string array entries are rejected without changing storage. `max_items` is
+nonnegative, with zero/omitted meaning ten; positive values keep only the newest
+entries. First registration follows the same normalization and retention rules.
+Each repeated string publication is a new event; clients should send bounded
+array snapshots for heartbeats to avoid duplicating events. Browser consistency
+is being verified in [SYN-103](../tasks/T0-bug-fix/define-log-stream-merge.md).
 
-The browser initially reads stored services, then consumes **raw** MQTT discovery
-messages. It can see messages rejected by the core and misses HTTP/TTL updates.
-This task aligns structure and persistence validation; authoritative browser state
-is tracked in [SYN-102](../tasks/T0-bug-fix/synchronize-authoritative-service-state.md).
+The browser consumes same-origin `GET /api/v1/events` SSE `services` events.
+Each event contains a complete array of persisted services, with no registration
+credentials. Accepted HTTP/MQTT discovery and TTL transitions notify connected
+browsers. Every connection begins with a full snapshot; clients replace their
+state and reconnect to reconcile missed updates. Periodic snapshots are sent
+at fifteen-second intervals. Raw discovery messages are not browser state.
 
 The shared [fixture](../testdata/discovery-v1.json) exercises all six components in
 backend transport tests and actual Vue card rendering. [TOML](axon_toml_spec.md)
-and [SDK](sdk_specification.md) documents specify planned mapping to this contract;
-neither describes an implemented SDK. The legacy Python example has its own
-[migration task](../tasks/T1-feature/restore-reference-axon.md).
+and [SDK](sdk_specification.md) documents describe the implemented Python mapping. The Python reference example uses the maintained shape; runtime acceptance is
+tracked in its [migration task](../tasks/T1-feature/restore-reference-axon.md).

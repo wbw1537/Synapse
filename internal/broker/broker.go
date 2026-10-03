@@ -2,12 +2,12 @@ package broker
 
 import (
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
-	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
 )
 
@@ -15,12 +15,19 @@ type Broker struct {
 	Server *mqtt.Server
 }
 
-func New() *Broker {
+func New(axonToken, coreToken string) *Broker {
 	// Create the new MQTT Server with default options
-	server := mqtt.New(nil)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+		if a.Key == "pk" || a.Key == "packet" {
+			return slog.String(a.Key, "[redacted]")
+		}
+		return a
+	}}))
+	server := mqtt.New(&mqtt.Options{Logger: logger})
+	server.Options.Capabilities.MaximumPacketSize = 1024*1024 + 4096
+	server.Options.Capabilities.MaximumClients = 256
 
-	// Allow all connections (for MVP, we can restrict this later)
-	_ = server.AddHook(new(auth.AllowHook), nil)
+	_ = server.AddHook(&accessHook{axonToken: axonToken, coreToken: coreToken}, nil)
 
 	return &Broker{Server: server}
 }

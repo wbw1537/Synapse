@@ -33,11 +33,12 @@ def main():
         subprocess.run(["go", "build", "-o", str(binary), "./cmd/synapse"], cwd=ROOT, check=True)
         env = dict(os.environ, SYNAPSE_DB_PATH=str(Path(tmp) / "synapse.db"),
                    SYNAPSE_HTTP_PORT=f"127.0.0.1:{args.http_port}",
-                   SYNAPSE_MQTT_PORT=f":{args.mqtt_port}", SYNAPSE_WS_PORT=f":{args.ws_port}",
+                   SYNAPSE_MQTT_PORT=f"127.0.0.1:{args.mqtt_port}", SYNAPSE_WS_PORT=f"127.0.0.1:{args.ws_port}",
                    SYNAPSE_ENABLE_ALERTS="false")
         env["SYNAPSE_AUTH_TOKEN"] = os.environ.get("SYNAPSE_AUTH_TOKEN") or secrets.token_urlsafe(24)
+        env["SYNAPSE_ADMIN_TOKEN"] = os.environ.get("SYNAPSE_ADMIN_TOKEN") or secrets.token_urlsafe(24)
         print(f"Dev UI: http://127.0.0.1:{args.http_port}; temporary DB: {tmp}", flush=True)
-        print("MQTT/WS use existing all-interface bindings; see docs/testing.md", flush=True)
+        print("Listeners bind loopback; set SYNAPSE_ADMIN_TOKEN before launching to log in", flush=True)
         process = subprocess.Popen([str(binary)], cwd=tmp, env=env, start_new_session=True)
         old_handlers = {}
         def stop(signum, frame):

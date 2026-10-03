@@ -59,7 +59,7 @@ Do not require tools from a different client or spawn agents merely to follow a 
 `cmd/synapse/` wires the process; `internal/models/` defines the data contract;
 `internal/service/` owns persistence, TTL, monitors, and commands; `internal/api/`
 serves HTTP; `internal/broker/` serves MQTT; `web/src/` renders the dashboard.
-`examples/` contains integrations. The Python SDK is planned, not implemented.
+`examples/` contains integrations. The reference Python SDK is in `sdk/python/`.
 
 ## Credentials and local state
 

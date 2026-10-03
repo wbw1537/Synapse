@@ -1,9 +1,11 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wbw1537/synapse/internal/config"
@@ -11,19 +13,24 @@ import (
 	"github.com/wbw1537/synapse/internal/evaluator"
 	"github.com/wbw1537/synapse/internal/models"
 	"github.com/wbw1537/synapse/internal/notification"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type Manager struct {
-	db           *db.Database
-	config       *config.Config
-	alertManager *notification.AlertManager
-	publishFunc  func(topic string, payload interface{}) error
+	mutationMu    sync.Mutex
+	subscribersMu sync.Mutex
+	subscribers   map[chan struct{}]struct{}
+	db            *db.Database
+	config        *config.Config
+	alertManager  *notification.AlertManager
+	publishFunc   func(topic string, payload interface{}) error
 }
 
 func NewManager(database *db.Database, cfg *config.Config) *Manager {
 	sender := notification.NewSMTPSender(cfg)
 	return &Manager{
+		subscribers:  make(map[chan struct{}]struct{}),
 		db:           database,
 		config:       cfg,
 		alertManager: notification.NewAlertManager(sender),
@@ -99,6 +106,8 @@ func (m *Manager) UpsertMQTT(topic string, payload []byte) error {
 }
 
 func (m *Manager) upsert(payload []byte, topicID string) error {
+	m.mutationMu.Lock()
+	defer m.mutationMu.Unlock()
 	p, err := models.DecodeDiscovery(payload)
 	if err != nil {
 		return err
@@ -117,9 +126,14 @@ func (m *Manager) upsert(payload []byte, topicID string) error {
 	svc.LastSeen = time.Now()
 
 	// 2.5 Merge with existing state (for log_stream, etc.)
-	if existing, err := m.Get(svc.ID); err == nil && existing != nil {
-		m.mergeComponents(existing, &svc)
+	existing, err := m.Get(svc.ID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("read existing state: %w", err)
+		}
+		existing = &models.Service{}
 	}
+	m.mergeComponents(existing, &svc)
 
 	// 3. Upsert into DB
 	err = m.db.Conn.Clauses(clause.OnConflict{
@@ -131,6 +145,8 @@ func (m *Manager) upsert(payload []byte, topicID string) error {
 		return fmt.Errorf("db error: %w", err)
 	}
 
+	m.notifyChanged()
+
 	// 4. Check Monitors
 	m.evaluateMonitors(&svc)
 
@@ -140,54 +156,38 @@ func (m *Manager) upsert(payload []byte, topicID string) error {
 
 // mergeComponents preserves state from existing components into the new update
 func (m *Manager) mergeComponents(existing, incoming *models.Service) {
-	if existing.Components == nil {
-		return
-	}
-
-	for id, newComp := range incoming.Components {
-		// 1. Handle Log Stream
-		if newComp.Type == "log_stream" {
-			if oldComp, ok := existing.Components[id]; ok {
-				// Initialize or cast existing logs
-				var logs []interface{}
-
-				// Handle different potential types from JSON unmarshalling
-				switch v := oldComp.Value.(type) {
-				case []interface{}:
-					logs = v
-				case []string:
-					for _, s := range v {
-						logs = append(logs, s)
-					}
-				}
-
-				// Append new value if it's a string
-				if newVal, ok := newComp.Value.(string); ok {
-					logs = append(logs, newVal)
-				}
-
-				// Enforce MaxItems
-				maxItems := 10 // Default
-				if newComp.MaxItems > 0 {
-					maxItems = newComp.MaxItems
-				}
-
-				if len(logs) > maxItems {
-					logs = logs[len(logs)-maxItems:]
-				}
-
-				newComp.Value = logs
-				// Must write back to map because 'newComp' is a copy/loop variable value in Go maps?
-				// Actually range over map gives value copy. So we need to reassign.
-				incoming.Components[id] = newComp
-			} else {
-				// First time seeing this log stream, wrap the single string in a list
-				if val, ok := newComp.Value.(string); ok {
-					newComp.Value = []string{val}
-					incoming.Components[id] = newComp
+	for id, comp := range incoming.Components {
+		if comp.Type != "log_stream" {
+			continue
+		}
+		logs := []interface{}{}
+		if old, ok := existing.Components[id]; ok && old.Type == "log_stream" {
+			switch v := old.Value.(type) {
+			case []interface{}:
+				logs = append(logs, v...)
+			case string:
+				if v != "" {
+					logs = append(logs, v)
 				}
 			}
 		}
+		switch v := comp.Value.(type) {
+		case string:
+			if v != "" {
+				logs = append(logs, v)
+			}
+		case []interface{}:
+			logs = append([]interface{}{}, v...)
+		}
+		limit := comp.MaxItems
+		if limit == 0 {
+			limit = 10
+		}
+		if len(logs) > limit {
+			logs = logs[len(logs)-limit:]
+		}
+		comp.Value = logs
+		incoming.Components[id] = comp
 	}
 }
 
@@ -218,6 +218,8 @@ func (m *Manager) StartTTLMonitor(interval time.Duration) {
 }
 
 func (m *Manager) checkTTL() {
+	m.mutationMu.Lock()
+	defer m.mutationMu.Unlock()
 	query := `
 		UPDATE services 
 		SET status = 'offline', updated_at = ?
@@ -234,6 +236,7 @@ func (m *Manager) checkTTL() {
 	}
 
 	if result.RowsAffected > 0 {
+		m.notifyChanged()
 		log.Printf("Marked %d services as offline", result.RowsAffected)
 	}
 }
@@ -253,4 +256,29 @@ func (m *Manager) Get(id string) (*models.Service, error) {
 		return nil, result.Error
 	}
 	return &svc, nil
+}
+
+// SubscribeChanges coalesces invalidations; clients always read a complete snapshot.
+// Subscribe before reading to avoid missing a mutation during the initial read.
+func (m *Manager) SubscribeChanges() (<-chan struct{}, func()) {
+	ch := make(chan struct{}, 1)
+	m.subscribersMu.Lock()
+	m.subscribers[ch] = struct{}{}
+	m.subscribersMu.Unlock()
+	return ch, func() {
+		m.subscribersMu.Lock()
+		delete(m.subscribers, ch)
+		m.subscribersMu.Unlock()
+	}
+}
+
+func (m *Manager) notifyChanged() {
+	m.subscribersMu.Lock()
+	defer m.subscribersMu.Unlock()
+	for ch := range m.subscribers {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
 }

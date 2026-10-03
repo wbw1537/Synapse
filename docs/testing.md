@@ -33,16 +33,15 @@ python3 scripts/dev.py
 Builds the UI and binary, uses a temporary working directory/database, disables
 SMTP, and binds HTTP to loopback. Defaults are the application's
 8080/1883/8083; use `--http-port`, `--mqtt-port`, and `--ws-port` to avoid an
-existing runtime. The browser currently hardcodes WS port 8083, so changing that
-port prevents live UI connectivity until the corresponding product gap is fixed.
-The internal core client requires a colon-prefixed MQTT port; the broker binds
-MQTT/WS using that value, currently exposing both on all interfaces. The launcher
-isolates storage and binds HTTP to loopback, but does not provide network isolation
-for MQTT/WS. Use a suitable local development host. Listener hardening is tracked
-separately; the launcher does not modify application behavior.
+existing runtime. The browser uses same-origin SSE, so changing the MQTT/WS ports does not
+affect live UI connectivity.
+All three listeners bind loopback in the launcher. The core accepts complete
+host:port listener addresses and connects to the selected broker address.
 
-Supply `SYNAPSE_AUTH_TOKEN` in the invoking environment when a test Axon needs a
-matching token. Otherwise the launcher generates an unprinted ephemeral token.
+Supply distinct `SYNAPSE_AUTH_TOKEN` and `SYNAPSE_ADMIN_TOKEN` in the invoking
+environment to integrate an Axon and log in. Otherwise the launcher generates
+unprinted ephemeral secrets. The browser uses the operator token, the Axon uses
+its token both for MQTT authentication and discovery. See [access policy](access.md).
 
 No `.env` is read automatically by Go; the launcher inherits environment and
 supplies temporary DB/token/ports. It never prints credentials. Ctrl+C terminates
@@ -58,6 +57,23 @@ then stop heartbeats and inspect both persisted state and the still-open UI.
 Record expected and observed outcomes, not only HTTP success codes.
 Browser work may use an available Playwright tool; do not assume a tool or daemon
 from another client's setup exists. Evidence must omit credentials.
+
+## SDK and integrated acceptance
+
+Python 3.11+ and paho-mqtt 2.x are required for the reference SDK. Install with
+`python -m pip install ./sdk/python`; then run:
+
+```sh
+PYTHONPATH=sdk/python/src python -m unittest discover -s sdk/python/tests -v
+python scripts/verify_integration.py
+go test -race ./internal/api ./internal/broker ./internal/service
+```
+
+The integration script builds a disposable core, selects loopback ports and
+generates temporary secrets. It checks actual SDK registration, heartbeat/log
+idempotence, forced reconnect, command callback, monitor recovery and shutdown.
+It requires built frontend assets. CI runs these checks after the full build;
+HTTP/MQTT tests require permission to listen on local temporary ports.
 
 ## Task viewer
 

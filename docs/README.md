@@ -19,20 +19,23 @@ The machine-readable [catalog](index.json) tracks these distinctions.
 - [Discovery decision](decisions/002-discovery-contract.md): accepted flat v1 and legacy rejection.
 - [Feedback](workflow-feedback.md): actual results and candidates for upstream reuse.
 - [Tasks](../tasks/README.md): current work contracts and dependency queue.
+- [Documentation website](documentation-site.md): local preview and GitHub Pages setup.
+- [Acceptance](acceptance.md): reliable integration Alpha outcomes and limits.
+- [Integration decision](decisions/003-reliable-integration.md): state delivery, credentials and SDK choices.
 
-## Proposed
+## Integration
 
-[Axon TOML](axon_toml_spec.md) and [SDK specification](sdk_specification.md) describe
-planned client development. Their mapping now targets the maintained flat
-protocol; the configuration parser and SDK are still unimplemented.
+[Axon TOML](axon_toml_spec.md), [SDK specification](sdk_specification.md) and
+[Python SDK](../sdk/python/README.md) describe the implemented reference client.
+[Access policy](access.md) defines HTTP sessions, MQTT ACLs and deployment boundaries.
 
 ## Historical
 
 [Original design](../DESIGN.md), [old API reference](api_spec.md),
 [widget reference](widget_reference.md), [sidecar guide](sidecar_guide.md) and
-[old plans](../plan/README.md) are preserved. The example and legacy Axon skill
-were written against widgets/actions arrays; the maintained skill is now updated,
-but the Python example still requires its tracked migration.
+[old plans](../plan/README.md) are preserved. The old example and legacy Axon skill
+were written against widgets/actions arrays; the maintained skill and Python
+reference example now use layout/components. Runtime acceptance is tracked in tasks.
 
 ## Maintenance
 

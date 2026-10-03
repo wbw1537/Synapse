@@ -2,20 +2,25 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/wbw1537/synapse/internal/config"
+	"github.com/wbw1537/synapse/internal/models"
 	"github.com/wbw1537/synapse/internal/service"
 )
 
 type Server struct {
+	sessionsMu sync.Mutex
+	sessions   map[string]time.Time
 	cfg        *config.Config
 	svcManager *service.Manager
 	router     *chi.Mux
@@ -24,6 +29,7 @@ type Server struct {
 
 func NewServer(cfg *config.Config, svcManager *service.Manager, staticFS fs.FS) *Server {
 	s := &Server{
+		sessions:   make(map[string]time.Time),
 		cfg:        cfg,
 		svcManager: svcManager,
 		router:     chi.NewRouter(),
@@ -38,18 +44,21 @@ func (s *Server) setupRoutes() {
 	// Middleware
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
-	s.router.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"}, // Allow all for MVP
-		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-	}))
 
 	// API Routes
 	s.router.Route("/api/v1", func(r chi.Router) {
-		r.Get("/services", s.listServices)
-		r.Get("/services/{id}", s.getService)
-		r.Post("/services/{id}/actions/{action_id}", s.executeAction)
+		r.Use(s.checkOrigin)
+		r.Post("/session", s.login)
+		r.Delete("/session", s.logout)
 		r.Post("/discovery", s.registerService)
+		r.Group(func(r chi.Router) {
+			r.Use(s.requireOperator)
+			r.Get("/session", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+			r.Get("/events", s.streamServices)
+			r.Get("/services", s.listServices)
+			r.Get("/services/{id}", s.getService)
+			r.Post("/services/{id}/actions/{action_id}", s.executeAction)
+		})
 	})
 
 	// Static Files (Frontend)
@@ -74,7 +83,8 @@ func (s *Server) setupRoutes() {
 
 func (s *Server) Start() error {
 	log.Printf("Starting HTTP API on %s", s.cfg.HTTPPort)
-	return http.ListenAndServe(s.cfg.HTTPPort, s.router)
+	server := &http.Server{Addr: s.cfg.HTTPPort, Handler: s.router, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
+	return server.ListenAndServe()
 }
 
 // Handlers
@@ -85,6 +95,10 @@ func (s *Server) listServices(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to list services", http.StatusInternalServerError)
 		return
 	}
+	if services == nil {
+		services = []models.Service{}
+	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(services)
 }
 
@@ -95,6 +109,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Service not found", http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(svc)
 }
 
@@ -113,7 +128,7 @@ func (s *Server) executeAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) registerService(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, models.MaxDiscoveryBytes))
 	if err != nil {
 		http.Error(w, "Failed to read body", http.StatusBadRequest)
 		return
@@ -127,4 +142,60 @@ func (s *Server) registerService(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+// streamServices sends only server-accepted state, including TTL transitions.
+func (s *Server) streamServices(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	changes, cancel := s.svcManager.SubscribeChanges()
+	defer cancel()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Accel-Buffering", "no")
+	send := func() error {
+		if !s.authorized(r) {
+			return fmt.Errorf("session expired")
+		}
+		services, err := s.svcManager.List()
+		if err != nil {
+			return err
+		}
+		if services == nil {
+			services = []models.Service{}
+		}
+		data, err := json.Marshal(services)
+		if err != nil {
+			return err
+		}
+		// Bound writes so a slow/disconnected browser cannot retain a handler forever.
+		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Second))
+		if _, err := fmt.Fprintf(w, "event: services\ndata: %s\n\n", data); err != nil {
+			return err
+		}
+		flusher.Flush()
+		return nil
+	}
+	if err := send(); err != nil {
+		return
+	}
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-changes:
+			if err := send(); err != nil {
+				return
+			}
+		case <-ticker.C:
+			if err := send(); err != nil {
+				return
+			}
+		}
+	}
 }

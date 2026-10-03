@@ -1,0 +1,39 @@
+schema = "axon.card.v1"
+
+[meta]
+id = "sdk-memory"
+name = "SDK Memory Demo"
+group = "Examples"
+ttl = 6
+
+[layout]
+type = "sections"
+[[layout.section]]
+title = "Health"
+components = ["memory", "logs", "controls"]
+
+[components.memory]
+type = "gauge"
+label = "Memory"
+min = 0
+max = 100
+unit = "%"
+default = 45
+[[components.memory.monitors]]
+condition = "value > 90"
+severity = "critical"
+message = "Simulated memory high"
+
+[components.logs]
+type = "log_stream"
+label = "Activity"
+max_items = 5
+
+[components.controls]
+type = "action_group"
+label = "Operations"
+[[components.controls.items]]
+id = "recover"
+label = "Simulate recovery"
+style = "primary"
+confirm = false

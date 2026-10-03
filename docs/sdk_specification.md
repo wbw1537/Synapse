@@ -1,95 +1,34 @@
-> Proposed reference. See [knowledge map](README.md) and
-> [implemented protocol](protocol.md) before relying on this document.
+# Reference Python Axon SDK
 
-# Synapse Axon SDK Specification
+The implemented SDK lives in [sdk/python](../sdk/python/README.md), targets Python
+3.11+ and uses paho-mqtt 2.x. Install with `python -m pip install ./sdk/python`.
+The [TOML schema](axon_toml_spec.md) maps to the maintained
+[flat discovery contract](protocol.md); other-language SDKs remain future work.
 
-This document defines the standard behavior and architecture for Synapse Axon SDKs, regardless of the implementation language (Python, Go, Rust, etc.).
+## Lifecycle and API
 
-These are planned SDK requirements. The maintained [wire contract](protocol.md)
-and [TOML mapping](axon_toml_spec.md) govern serialization: flatten identity and
-component fields, emit `api_version: "v1"`, add matching component `id` fields,
-and translate action item TOML `id` to JSON `action_id`. Do not publish `meta`,
-`props`, `default`, `widgets` or top-level `actions`. Reject missing/unsupported
-versions, ghost references and duplicate action IDs before opening a connection.
-The core enforces structural integrity; SDK value/range checks below remain planned.
+`Axon(path, token=None, host=None, port=None)` loads and validates TOML before
+constructing a network client. Credentials come from arguments or environment,
+not TOML. Missing versions, ghost references, duplicate actions, invalid field
+shapes and initial values fail immediately; unreferenced components warn.
 
-## 1. Design Principles
-*   **Fail Fast**: Configuration errors (invalid TOML, schema violations) must cause the application to crash/exit *immediately* during initialization, before network connections are attempted.
-*   **Type Safety**: The SDK must validate data types at runtime (e.g., ensuring a string isn't sent to a Gauge widget).
-*   **Definition vs. State**: The SDK loads the static definition from `axon.toml` and manages the dynamic state in memory.
+`axon.components[id].update(value)` validates and updates state, then publishes a
+full snapshot when connected. Gauge values must be finite and inside min/max;
+status values require a configured mapping. Logs accept string events or string
+array replacement, retain max_items locally, and publish arrays so heartbeats
+cannot duplicate events. Invalid typed values leave state unchanged.
 
-## 2. SDK Lifecycle
+`@axon.on_action(id)` binds a declared callback; all declared actions must be bound
+before start. `start()` connects with service client ID and Axon credentials,
+subscribes to its command topic, publishes registration and starts TTL/2 heartbeats.
+Reconnect resubscribes and publishes current state. Actions run on a separate
+worker with a bounded queue; monitor expressions remain server-side.
 
-An Axon SDK must implement the following state machine:
+`stop()` stops heartbeats, attempts an acknowledged offline publication and
+terminates network processing. A disconnected client relies on core TTL. Handlers
+must return promptly because Python cannot cancel running callbacks. Context
+manager entry/exit wraps start/stop. A successful MQTT subscribe/publication does
+not establish persistence or exactly-once execution; use HTTP readback and actual
+callback evidence.
 
-### Phase 1: Initialization
-*Input*: Path to `axon.toml`.
-
-1.  **Load File**: Read and parse the TOML configuration.
-2.  **Validate Schema**:
-    *   Ensure `schema` matches the supported version.
-    *   **Integrity Check**:
-        *   **Orphans**: Warn if a component is defined in `[components]` but not used in `[layout]`.
-        *   **Ghosts**: **MUST Error** if an ID is used in `[layout]` but not defined in `[components]`.
-    *   **Type Check**: Validate required properties for each component type (e.g., `gauge` needs `min`/`max`).
-3.  **Initialize State**: Create an in-memory registry of components with their `default` values.
-
-### Phase 2: Registration
-*Trigger*: User calls `start()`.
-
-1.  **Connect**: Establish connection to the MQTT Broker.
-2.  **Publish Discovery**: Serialize the configuration + current state using the flat mapping above and publish the full snapshot to `synapse/v1/discovery/{id}` (or POST `/api/v1/discovery`). MQTT delivery acknowledgment does not prove core acceptance; HTTP readback can confirm persisted capabilities.
-3.  **Start Heartbeat**: Spawn a background task to re-publish the Discovery payload every `TTL / 2` seconds.
-
-### Phase 3: Runtime Loop
-*Trigger*: Application Logic.
-
-1.  **State Updates**:
-    *   User updates a component (e.g., `components["cpu"].set(50)`).
-    *   SDK updates internal state.
-    *   SDK publishes the updated full snapshot to MQTT immediately (or debounced).
-2.  **Command Handling**:
-    *   Subscribe to `synapse/v1/command/{id}`.
-    *   On message: Parse `action_id`.
-    *   Invoke the registered callback/handler for that action.
-
----
-
-## 3. Standard API Surface
-
-While syntax varies by language, the concepts should map 1:1.
-
-### 3.1 Constructor
-Should accept the config path.
-*   Python: `Axon("axon.toml")`
-*   Go: `NewAxon("axon.toml")`
-
-### 3.2 Component Access
-Users should access components by ID to update them.
-*   Python: `axon.components["cpu"].update(50)`
-*   Go: `axon.Component("cpu").Update(50)`
-
-### 3.3 Action Binding
-A mechanism to bind code to `action_group` buttons.
-*   Python: Decorator `@axon.on_action("restart")`
-*   Go: `axon.OnAction("restart", func() { ... })`
-
----
-
-## 4. Validation Rules Matrix
-
-| Rule | Severity | Description |
-| :--- | :--- | :--- |
-| **File Missing** | **Fatal** | Config file does not exist. |
-| **Invalid TOML** | **Fatal** | Syntax error in file. |
-| **Ghost ID** | **Fatal** | Layout references ID not in Components. |
-| **Missing Props** | **Fatal** | Component missing mandatory fields (e.g. `gauge` without `max`). |
-| **Orphan ID** | Warning | Component defined but not used in Layout. |
-| **Type Mismatch** | Runtime Error | Sending `string` to numeric widget. |
-
----
-
-## 5. Security Recommendations
-
-*   **Sanitize Inputs**: SDKs should assume MQTT payloads are untrusted.
-*   **Monitor Safety**: If the SDK evaluates local monitoring rules, avoid using unsafe `eval()` functions. Use parsed expression engines.
+See the SDK README for executable examples and verification commands.

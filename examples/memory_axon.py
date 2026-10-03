@@ -1,14 +1,19 @@
+import os
+from collections import deque
 import time
 import json
 import psutil
 import paho.mqtt.client as mqtt
 
 # Configuration
-BROKER = "localhost"
-PORT = 1883
-SERVICE_ID = "memory-sidecar-python"
-TOKEN = "synapse-secret"
+BROKER = os.environ.get("SYNAPSE_MQTT_HOST", "localhost")
+PORT = int(os.environ.get("SYNAPSE_MQTT_PORT", "1883").lstrip(":"))
+SERVICE_ID = os.environ.get("SYNAPSE_SERVICE_ID", "memory-sidecar-python")
+TOKEN = os.environ.get("SYNAPSE_AUTH_TOKEN")
+if not TOKEN:
+    raise SystemExit("Set SYNAPSE_AUTH_TOKEN to match the core")
 TTL = 10
+LOGS = deque(maxlen=5)
 
 def get_payload(simulated_percent=None):
     # Get memory stats
@@ -27,7 +32,7 @@ def get_payload(simulated_percent=None):
     elif val > 70:
         status_key = "high"
 
-    return {
+    payload = {
         "api_version": "v1",
         "auth_token": TOKEN,
         "id": SERVICE_ID,
@@ -97,7 +102,7 @@ If you receive a **Critical** alert (>90% usage):
                 "id": "mem_logs",
                 "type": "log_stream",
                 "label": "Activity Log",
-                "value": f"[{time.strftime('%H:%M:%S')}] Sampled memory usage at {val}%",
+                "value": list(LOGS),
                 "max_items": 5
             },
             # 5. Action Group
@@ -131,6 +136,13 @@ If you receive a **Critical** alert (>90% usage):
         ]
     }
 
+    widgets = payload.pop("widgets")
+    payload["components"] = {widget["id"]: widget for widget in widgets}
+    payload["layout"] = {"type": "sections", "root": [
+        {"type": "section", "title": "Memory", "children": [widget["id"] for widget in widgets]}
+    ]}
+    return payload
+
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print("Connected to MQTT Broker!")
@@ -161,11 +173,12 @@ def on_message(client, userdata, msg):
 
 # Initialize MQTT Client (using CallbackAPIVersion.VERSION2 for newer paho-mqtt)
 try:
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=SERVICE_ID)
 except AttributeError:
     # Fallback for older paho-mqtt versions
-    client = mqtt.Client()
+    client = mqtt.Client(client_id=SERVICE_ID)
 
+client.username_pw_set("axon", TOKEN)
 client.on_connect = on_connect
 client.on_message = on_message
 
@@ -199,11 +212,12 @@ try:
             current_val = 50 # Normal
             phase = "Normal (Resumed)"
             
+        LOGS.append(f"[{time.strftime('%H:%M:%S')}] Sampled memory usage at {current_val}%")
         payload = get_payload(simulated_percent=current_val)
         topic = f"synapse/v1/discovery/{SERVICE_ID}"
         
-        print(f"[{time.strftime('%H:%M:%S')}] Phase: {phase} | Publishing Value: {payload['widgets'][0]['value']}")
-        client.publish(topic, json.dumps(payload))
+        print(f"[{time.strftime('%H:%M:%S')}] Phase: {phase} | Publishing Value: {payload['components']['mem_stat']['value']}")
+        client.publish(topic, json.dumps(payload), qos=1)
         
         # Sleep for half of TTL
         time.sleep(TTL / 2)
@@ -213,6 +227,7 @@ except KeyboardInterrupt:
     # Send offline status
     payload = get_payload()
     payload["status"] = "offline"
-    client.publish(f"synapse/v1/discovery/{SERVICE_ID}", json.dumps(payload))
+    publication = client.publish(f"synapse/v1/discovery/{SERVICE_ID}", json.dumps(payload), qos=1)
+    publication.wait_for_publish(timeout=3)
     client.loop_stop()
     client.disconnect()

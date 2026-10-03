@@ -35,12 +35,13 @@ func TestDiscoveryTransports(t *testing.T) {
 	if err := database.InitSchema(); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &config.Config{AuthToken: "fixture-token"}
+	cfg := &config.Config{AuthToken: "fixture-token", AdminToken: "operator-test-token"}
 	manager := service.NewManager(database, cfg)
+	client := &http.Client{Transport: authenticatedTransport{token: "operator-test-token"}}
 	server := httptest.NewServer(NewServer(cfg, manager, nil).router)
 	defer server.Close()
 
-	b := broker.New()
+	b := broker.New("fixture-token", "core-test-token")
 	tcp := listeners.NewTCP(listeners.Config{ID: "test", Address: "127.0.0.1:0"})
 	if err := b.Server.AddListener(tcp); err != nil {
 		t.Fatal(err)
@@ -50,12 +51,18 @@ func TestDiscoveryTransports(t *testing.T) {
 	}
 	defer b.Stop()
 	connect := func(id string) mqtt.Client {
-		c := mqtt.NewClient(mqtt.NewClientOptions().AddBroker("tcp://" + tcp.Address()).SetClientID(id))
+		opts := mqtt.NewClientOptions().AddBroker("tcp://" + tcp.Address()).SetClientID(id)
+		if id == "synapse_core" {
+			opts.SetUsername("synapse-core").SetPassword("core-test-token")
+		} else {
+			opts.SetUsername("axon").SetPassword("fixture-token")
+		}
+		c := mqtt.NewClient(opts)
 		waitToken(t, c.Connect())
 		t.Cleanup(func() { c.Disconnect(0) })
 		return c
 	}
-	core, axon := connect("test-core"), connect("test-axon")
+	core, axon := connect("synapse_core"), connect("protocol-demo")
 	manager.SetPublisher(func(topic string, payload interface{}) error {
 		data, err := json.Marshal(payload)
 		if err != nil {
@@ -85,7 +92,7 @@ func TestDiscoveryTransports(t *testing.T) {
 				t.Fatal("discovery callback not received")
 			}
 		}
-		res, err := http.Post(server.URL+"/api/v1/discovery", "application/json", bytes.NewReader(payload))
+		res, err := client.Post(server.URL+"/api/v1/discovery", "application/json", bytes.NewReader(payload))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -105,7 +112,7 @@ func TestDiscoveryTransports(t *testing.T) {
 			if err := send(transport, "synapse/v1/discovery/protocol-demo", fixture); err != nil {
 				t.Fatal(err)
 			}
-			res, err := http.Get(server.URL + "/api/v1/services/protocol-demo")
+			res, err := client.Get(server.URL + "/api/v1/services/protocol-demo")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -118,7 +125,7 @@ func TestDiscoveryTransports(t *testing.T) {
 				t.Fatalf("stored/UI structure differs: %+v", stored)
 			}
 			// The stored action_id drives the actual MQTT command envelope.
-			res, err = http.Post(server.URL+"/api/v1/services/protocol-demo/actions/restart", "application/json", nil)
+			res, err = client.Post(server.URL+"/api/v1/services/protocol-demo/actions/restart", "application/json", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -212,7 +219,7 @@ func TestDiscoveryTransports(t *testing.T) {
 		})
 	}
 	for _, topic := range []string{"synapse/v1/discovery/other", "synapse/v1/discovery/", "synapse/v1/discovery/protocol-demo/extra"} {
-		if err := send("mqtt", topic, fixture); err == nil {
+		if err := manager.UpsertMQTT(topic, fixture); err == nil {
 			t.Fatalf("accepted topic %s", topic)
 		}
 	}
@@ -240,4 +247,12 @@ func waitToken(t *testing.T, token mqtt.Token) {
 	if err := token.Error(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+type authenticatedTransport struct{ token string }
+
+func (a authenticatedTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r = r.Clone(r.Context())
+	r.Header.Set("Authorization", "Bearer "+a.token)
+	return http.DefaultTransport.RoundTrip(r)
 }

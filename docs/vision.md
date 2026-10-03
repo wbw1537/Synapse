@@ -9,8 +9,9 @@ understand a fault, inspect supporting data, or invoke a predefined recovery act
 Keep the core self-hosted, lightweight, and easy to deploy as a single binary.
 
 The existing MVP includes discovery, component cards, runbooks, expressions,
-SMTP alerts, and command publication. SDKs, policy overrides, recovery code
-creation, login, and additional notification channels are future capabilities.
+SMTP alerts, and command publication. The Python reference SDK and operator-token login support integrations and
+controlled operations. Policy overrides, recovery code creation, multi-user login
+and additional notification channels remain future capabilities.
 They must not be described as implemented without evidence.
 
 `DESIGN.md` preserves the original broader product proposal. This document

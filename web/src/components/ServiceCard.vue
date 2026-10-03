@@ -59,7 +59,7 @@ const getComponent = (id: string) => {
     <!-- Header -->
     <div class="flex items-start justify-between">
       <div class="flex items-center gap-3">
-        <div :class="['p-2 rounded-lg border', statusColor]">
+        <div :aria-label="`Service status: ${service.status}`" :class="['p-2 rounded-lg border', statusColor]">
           <component :is="statusIcon" class="w-5 h-5" />
         </div>
         <div>

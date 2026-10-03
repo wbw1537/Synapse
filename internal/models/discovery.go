@@ -9,11 +9,15 @@ import (
 )
 
 const DiscoveryVersion = "v1"
+const MaxDiscoveryBytes = 1024 * 1024
 
 var protocolID = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 // DecodeDiscovery rejects unsupported shapes before they can silently lose data.
 func DecodeDiscovery(payload []byte) (*ServicePayload, error) {
+	if len(payload) > MaxDiscoveryBytes {
+		return nil, fmt.Errorf("discovery exceeds 1 MiB")
+	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(payload, &fields); err != nil || fields == nil {
 		return nil, fmt.Errorf("discovery must be a JSON object")
@@ -69,6 +73,22 @@ func (p *ServicePayload) Validate() error {
 		case "stat", "gauge", "status_indicator", "log_stream", "action_group", "link":
 		default:
 			return fmt.Errorf("component %q has unsupported type %q", id, comp.Type)
+		}
+		if comp.Type == "log_stream" {
+			if comp.MaxItems < 0 {
+				return fmt.Errorf("log_stream %q max_items must be nonnegative", id)
+			}
+			switch v := comp.Value.(type) {
+			case nil, string:
+			case []interface{}:
+				for _, line := range v {
+					if _, ok := line.(string); !ok {
+						return fmt.Errorf("log_stream %q value must contain only strings", id)
+					}
+				}
+			default:
+				return fmt.Errorf("log_stream %q value must be a string, string array or null", id)
+			}
 		}
 		if comp.ActionID != "" || (comp.Type != "action_group" && comp.Items != nil) {
 			return fmt.Errorf("component %q must declare actions in action_group.items", id)
