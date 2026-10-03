@@ -110,7 +110,7 @@ non-string array entries are rejected without changing storage. `max_items` is
 nonnegative, with zero/omitted meaning ten; positive values keep only the newest
 entries. First registration follows the same normalization and retention rules.
 Each repeated string publication is a new event; clients should send bounded
-array snapshots for heartbeats to avoid duplicating events. 
+array snapshots for heartbeats to avoid duplicating events.
 
 The browser consumes same-origin `GET /api/v1/events` SSE `services` events.
 Each event contains a complete array of persisted services, with no registration
